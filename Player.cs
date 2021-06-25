@@ -66,87 +66,24 @@ public class Player : MonoBehaviour
         m_GroundNormal = Vector2.up;
         m_GroundCollider = null;
 
-        /*
-        RaycastHit2D[] results = new RaycastHit2D[5];
-        ContactFilter2D filter = new ContactFilter2D();
-        filter.SetLayerMask(LayerMask.GetMask("Ground"));
-        Physics2D.BoxCast(
-            transform.position,
-            m_BoxCollider2D.size,
-            0f,
-            Vector2.down,
-            filter,
-            results,
-            GroundCheckDistance
-        );
-        Array.Sort<RaycastHit2D>(results, delegate(RaycastHit2D x, RaycastHit2D y) {
-            if (x.collider == null && y.collider == null) {
-                return 0;
-            } else if (x.collider == null) {
-                return -1;
-            } else if (y.collider == null) {
-                return 1;
-            } else {
-                return Vector2.Distance(transform.position, x.point) < Vector2.Distance(transform.position, y.point) ? -1 : 1;
-            }
-        });*/
-
-        RaycastHit2D hit = new RaycastHit2D();
-        RaycastHit2D[] hits = Physics2D.BoxCastAll(
-            transform.position,
-            m_BoxCollider2D.size,
-            0f,
-            Vector2.down,
-            GroundCheckDistance,
-            LayerMask.GetMask("Ground")
-        );
-
-        Array.Sort<RaycastHit2D>(hits, delegate(RaycastHit2D x, RaycastHit2D y) {
-            if (x.collider == null && y.collider == null) {
-                return 0;
-            } else if (x.collider == null) {
-                return -1;
-            } else if (y.collider == null) {
-                return 1;
-            } else {
-                Debug.DrawRay(x.point, x.normal);
-                Debug.DrawRay(y.point, y.normal);
-                return Physics2D.Distance(m_BoxCollider2D, x.collider).distance < Physics2D.Distance(m_BoxCollider2D, y.collider).distance ? -1 : 1;
-            }
-        });
-
-        /*
-        string x = "Grounds: ";
-        foreach (RaycastHit2D h in hits) {
-            if (h.collider != null) {
-                x += h.collider.name + ", ";
-            }
-        }
-        Debug.Log(x);
-        */
-
-        foreach (RaycastHit2D h in hits) {
-            if (h.collider != null) {
-                hit = h;
-                m_GroundCollider = h.collider;
-                break;
-            }
-        }
-
-        // INSTEAD: foot collider. just one point (or a line) beneath the player. the player is therefore centered on the platform they're on (dot) or they edge on it (line). then, collider for obstacles. so two separate things.
+        RaycastHit2D hit = Physics2D.Raycast(Foot.position, Vector2.down, GroundCheckDistance, LayerMask.GetMask("Ground"));
 
         if (hit.collider != null) {
             m_GroundNormal = hit.normal;
+            m_GroundCollider = hit.collider;
 
             // if (Vector2.Dot(hit.normal, transform.up) > 0f && Vector2.Angle(transform.up, hit.normal) < 45f) {
             IsGrounded = true;
 
             // Snap to ground
-            Vector2 to = Physics2D.ClosestPoint(m_RB2D.position + Vector2.down *  m_BoxCollider2D.size.y / 2f, hit.collider) + hit.normal * m_BoxCollider2D.size.y / 2f;
-            m_CurrMovePosition.y = to.y;
+            // Don't use hit.point as it returns things inside the other collider
+            m_CurrMovePosition = Physics2D.ClosestPoint(Foot.position, hit.collider) + (Vector2.up * m_BoxCollider2D.size.y / 2);
 
-            Debug.Log("Grounded - name: " + hit.collider.name + ", height: " + hit.centroid.y);
-            // Debug.DrawRay(m_RB2D.position, hit.normal);
+            Debug.DrawRay(Physics2D.ClosestPoint(Foot.position, hit.collider), hit.normal);
+
+            // ground is on GroundUp but normal is for ground flat????
+
+            Debug.Log("Grounded on " + hit.collider.name);
         } else {
             Debug.Log("Not grounded");
         }
@@ -193,7 +130,46 @@ public class Player : MonoBehaviour
             Velocity += Vector2.down * GravityDownForce * Time.fixedDeltaTime;
         }
 
+        RaycastHit2D groundHit = new RaycastHit2D();
         RaycastHit2D hit = new RaycastHit2D();
+
+        // problem is: when you're at the intersection of two or more grounds, you have to pick one ground. this is important as the direction of the ground determines the axis of movement, and you always want to be moving ALONG the ground rather than running into it
+        // if a movement would see your foot move into a ground, stop. go to the point of intersection. check if valid ground. if valid, reorientate movement to that ground and proceed.
+        if (IsGrounded) {
+            foreach (RaycastHit2D h in Physics2D.RaycastAll(
+                Foot.position,
+                Velocity.normalized,
+                Velocity.magnitude * Time.fixedDeltaTime,
+                LayerMask.GetMask("Ground")
+            )) {
+                if (h.collider != null) {
+                    if (m_GroundCollider != null && h.collider.name == m_GroundCollider.name) {
+                        continue;
+                    }
+
+                    groundHit = h;
+                    break;
+                }
+            }
+
+            if (groundHit.collider != null) {
+                Debug.Log("switching from " + m_GroundCollider.name + " to " + groundHit.collider.name);
+
+                // Move to the intersection between the two grounds
+                m_CurrMovePosition = groundHit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
+                Debug.DrawRay(groundHit.point, Vector2.up, Color.red, 3f);
+
+                // Reorientate the remaining length of movement on the new ground
+                float mag = Math.Abs(Velocity.magnitude) - groundHit.distance;
+                mag = Velocity.x < 0 ? -mag : mag;
+                Velocity = PerpendicularClockwise(groundHit.normal).normalized * mag;
+
+                // Move the remaining distance
+                Debug.DrawLine(groundHit.point, groundHit.point + Velocity * Time.fixedDeltaTime, Color.green, 3f);
+                m_CurrMovePosition += Velocity * Time.fixedDeltaTime;
+                return;
+            }
+        }
 
         foreach (RaycastHit2D h in Physics2D.BoxCastAll(
             m_RB2D.position,
@@ -201,13 +177,13 @@ public class Player : MonoBehaviour
             0f,
             Velocity.normalized,
             Velocity.magnitude * Time.fixedDeltaTime,
-            IsGrounded ? LayerMask.GetMask("Wall") : LayerMask.GetMask("Ground", "Wall")
+            LayerMask.GetMask("Wall")
         )) {
-            if (h.collider != null && hit.collider != m_GroundCollider) {
+            if (h.collider != null && h.collider != m_GroundCollider) {
                 hit = h;
                 break;
             }
-        } // remove collider of the ground
+        }
 
         // Debug.Log("Candidate: " + m_RB2D.position.y + " -> " + (m_RB2D.position + Velocity * Time.fixedDeltaTime).y);
         if (hit.collider == null) {
