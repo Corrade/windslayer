@@ -70,7 +70,7 @@ public class Player : MonoBehaviour
     {
         // Don't check grounding if ascending in the air (e.g. whilst in the upward section of jumping)
         if (!IsGrounded && Velocity.y > 0f) {
-            Debug.Log("GroundCheck() skipped - airborne");
+            Debugger.Log("GroundCheck() skipped - airborne");
             return;
         }
 
@@ -82,11 +82,11 @@ public class Player : MonoBehaviour
             (m_BoxCollider2D.size.y / 2) + GroundCheckDistance,
             LayerMask.GetMask("Ground")
         );
-        Debug.DrawRay(transform.position, Vector2.down * ((m_BoxCollider2D.size.y / 2) + GroundCheckDistance), Color.yellow, 1f);
+        Debugger.DrawRay(transform.position, Vector2.down * ((m_BoxCollider2D.size.y / 2) + GroundCheckDistance), Color.yellow, 1f);
 
         // If ground was detected
         if (hit.collider != null) {
-            Debug.Log("Ground detected - " + hit.collider.name);
+            Debugger.Log("Ground detected - " + hit.collider.name);
 
             IsGrounded = true;
             m_GroundNormal = hit.normal;
@@ -95,21 +95,21 @@ public class Player : MonoBehaviour
 
             // Check steepness
             if (Vector2.Dot(hit.normal, Vector2.up) < Mathf.Cos(MaximumGroundAngle * Mathf.Deg2Rad)) {
-                Debug.Log("Too steep");
+                Debugger.Log("Too steep");
             }
 
             // Snap to ground
             m_CandidatePosition = hit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
-            Debug.DrawRay(hit.point, hit.normal, Color.magenta, 1f);
+            Debugger.DrawRay(hit.point, hit.normal, Color.magenta, 1f);
         } else {
-            Debug.Log("No ground detected");
+            Debugger.Log("No ground detected");
         }
     }
 
     void HandleMovement()
     {
         if (IsGrounded) {
-            Debug.Log("Grounded");
+            Debugger.Log("Grounded");
 
             float worldspaceMoveInput = m_InputHandler.GetMoveInput();
             float magnitude = worldspaceMoveInput * Speed;
@@ -119,26 +119,30 @@ public class Player : MonoBehaviour
 
             Velocity = directionOnSlope * magnitude;
 
-            Debug.DrawRay(Foot.position, Velocity, Color.red, 1f);
+            Debugger.DrawRay(Foot.position, Velocity, Color.red, 1f);
 
             // Basic jumping
-            if (m_InputHandler.GetJumpInputHeld()) {
+            if (m_InputHandler.JumpInputDown) {
+                m_InputHandler.JumpInputDown = false;
+
                 Velocity = new Vector2(Velocity.x, 0f);
                 Velocity += Vector2.up * JumpForce;
                 m_JumpCounter++;
-                Debug.Log("Jump #" + m_JumpCounter);
+                Debugger.Log("Jump #" + m_JumpCounter);
 
                 ResetGrounding();
             }
         } else {
-            Debug.Log("Not grounded");
+            Debugger.Log("Not grounded");
 
             // Double jump
-            if (m_InputHandler.GetJumpInputDown() && m_JumpCounter < MaxJumps) {
+            if (m_InputHandler.JumpInputDown && m_JumpCounter < MaxJumps) {
+                m_InputHandler.JumpInputDown = false;
+
                 Velocity = new Vector2(Velocity.x, 0f);
                 Velocity += Vector2.up * JumpForce;
                 m_JumpCounter++;
-                Debug.Log("Jump #" + m_JumpCounter);
+                Debugger.Log("Jump #" + m_JumpCounter);
             } else {
                 // Gravity
                 Velocity += Vector2.down * GravityDownForce * Time.fixedDeltaTime;
@@ -154,7 +158,7 @@ public class Player : MonoBehaviour
         }
 
         m_CandidatePosition += Velocity * Time.fixedDeltaTime;
-        Debug.DrawRay(m_RB2D.position, Velocity * Time.fixedDeltaTime, Color.blue, 1f);
+        Debugger.DrawRay(m_RB2D.position, Velocity * Time.fixedDeltaTime, Color.blue, 1f);
     }
 
     // Returns whether or not
@@ -187,11 +191,11 @@ public class Player : MonoBehaviour
         }
 
         if (chosenGroundHit.collider != null) {
-            Debug.Log("Transitioning grounds from " + m_GroundCollider.name + " to " + chosenGroundHit.collider.name);
+            Debugger.Log("Transitioning grounds from " + m_GroundCollider.name + " to " + chosenGroundHit.collider.name);
 
             // Move to the intersection between the two grounds
             m_CandidatePosition = chosenGroundHit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
-            Debug.DrawRay(chosenGroundHit.point, Vector2.up, Color.white, 1f);
+            Debugger.DrawRay(chosenGroundHit.point, Vector2.up, Color.white, 1f);
 
             // Reorientate the remaining length of movement on the new ground
             float mag = Math.Abs(Velocity.magnitude) - chosenGroundHit.distance;
@@ -199,7 +203,7 @@ public class Player : MonoBehaviour
             Velocity = PerpendicularClockwise(chosenGroundHit.normal).normalized * mag;
 
             // Move the remaining distance
-            Debug.DrawLine(chosenGroundHit.point, chosenGroundHit.point + Velocity * Time.fixedDeltaTime, Color.green, 3f);
+            Debugger.DrawLine(chosenGroundHit.point, chosenGroundHit.point + Velocity * Time.fixedDeltaTime, Color.green, 3f);
             m_CandidatePosition += Velocity * Time.fixedDeltaTime;
 
             return true;
@@ -228,9 +232,9 @@ public class Player : MonoBehaviour
             }
         }
 
-        // Debug.Log("Candidate: " + m_RB2D.position.y + " -> " + (m_RB2D.position + Velocity * Time.fixedDeltaTime).y);
+        // Debugger.Log("Candidate: " + m_RB2D.position.y + " -> " + (m_RB2D.position + Velocity * Time.fixedDeltaTime).y);
         if (obstructionHit.collider != null) {
-            Debug.Log("Obstructed by " + obstructionHit.collider.name);
+            Debugger.Log("Obstructed by " + obstructionHit.collider.name);
 
             // Set position to a specified distance from the obstruction following the direction of the current velocity
             m_CandidatePosition = obstructionHit.centroid - Velocity.normalized * WallRepel;
@@ -254,5 +258,10 @@ public class Player : MonoBehaviour
     public Vector2 PerpendicularClockwise(Vector2 vec)
     {
         return new Vector2(vec.y, -vec.x);
+    }
+
+    bool IsTooSteep(Vector2 normal)
+    {
+        return Vector2.Dot(hit.normal, Vector2.up) < Mathf.Cos(MaximumGroundAngle * Mathf.Deg2Rad);
     }
 }

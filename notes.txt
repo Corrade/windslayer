@@ -74,3 +74,8 @@ a
 
 all collider edges that aren't too steep are treated as grounds.
 otherwise, the edge is an obstruction.
+
+
+BUG: if you jump from one ground to a new one, you mometarily dip below the surface and are then snapped back up
+BUG: shouldn't be able to ascend grounds that are too steep
+combine grounds and wall. not too steep = ground. too steep = obstruction.
