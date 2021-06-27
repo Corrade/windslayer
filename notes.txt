@@ -1,0 +1,76 @@
+
+sideways movement (ad)
+jumping (w)
+one-way platforms (when player velocity is positive, set one-way platform collision mask bit off
+falling down platforms (s)
+dash
+double jump
+basic attack
+strong attack
+guard (block basic attack)
+interact (spacebar)
+entering portals (d - potentially remove with spacebar and auto-move)
+skills
+
+menus
+    top
+        pvp interface
+        skills
+        settings
+    mid
+        character info (name, class, guild, hp/mp, exp, pvp, attack, defence, other stats)
+        equipment
+        inventory
+    low
+        quests
+        map
+        social (friends, guild)
+
+start-up, active, recovery, frame adv. on hit, frame adv. on block, damage, (+ stun)
+
+a thin client that only sends input state to the server, interpolates between received states and performs some prediction for smoothness
+
+for example, suppose the client sends their position to the server. what stops them from teleporting by intercepting the packet and inserting their own position?
+- does the server perhaps perform checks so that impossible movements are screened out?
+- in this case, would it be better to send inputs rather than positions from the client? that is, is the problem with this specific example moreso related to the choice of communicated data?
+
+concerns: bandwidth and server speed.
+
+suppose you send 100 B every 1/60th of a second. that's 6 KB per second and 21.6 MB per hour.
+
+https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
+https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
+https://en.wikipedia.org/wiki/Netcode
+https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
+
+https://www.gabrielgambetta.com/client-server-game-architecture.html
+
+"Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
+prediction implies rollback in the case of faulty predictions
+no prediction = delay-based
+
+client side prediction uses the same code that the server uses for movement checking/logic
+
+
+
+always send inputs, not position
+
+q
+    hi, i've got a security question:
+    suppose you're sending players the positional data of everybody in the server. you want to protect this information because it's supposed to be hidden in-game, so players shouldn't be able to inspect incoming packets and discover the positions of everyone else. is there a standard approach to addressing this problem?
+
+    - i imagine using a secure communication protocol would be far too slow.
+    - perhaps it's best to sort of give up and instead invest effort in detection rather than prevention?
+    - maybe one shouldn't be sending all that positional data anyway and should instead only send the data of other players that are actually visible?
+
+    hmm, what's recommended?
+
+a
+    a secure protocol won't help, your game client will still need to be able to decode it at some point and the decoded data can be read from memory - you can make this harder to do with anti-cheat countermeasures, but you won't be able to completely defeat any dedicated attempts without standing behind the user to slap them when they make the attempt.
+
+    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret.
+
+
+
+all collider edges that aren't too steep are treated as grounds.
+otherwise, the edge is an obstruction.

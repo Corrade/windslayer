@@ -7,19 +7,25 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     [Tooltip("Force applied downward when in the air")]
-    public float GravityDownForce = 10f;
+    public float GravityDownForce = 80f;
 
     [Tooltip("Distance from the bottom of the character to raycast for the ground")]
     public float GroundCheckDistance = 0.05f;
 
     [Tooltip("Horizontal speed")]
-    public float Speed = 10f;
+    public float Speed = 5f;
 
     [Tooltip("Get at most this many units to a wall (must be > 0 as to not get stuck inside a wall)")]
     public float WallRepel = 0.05f;
 
     [Tooltip("Force applied upwards when jumping")]
     public float JumpForce = 6f;
+
+    [Tooltip("Maximum number of times the player can jump without landing")]
+    public int MaxJumps = 2;
+
+    [Tooltip("Ground planes steeper than this value (in degrees) will instead be considered as obstructions")]
+    public float MaximumGroundAngle = 45f;
 
     [Tooltip("The empty child game object representing the point of contact between the player and the ground")]
     public Transform Foot;
@@ -35,8 +41,8 @@ public class Player : MonoBehaviour
     Collider2D m_GroundCollider;
 
     // Passed to m_RB2D.MovePosition() at the end of FixedUpdate() as MovePosition() is resolved during the next physics update
-    Vector2 m_CurrMovePosition;
-
+    Vector2 m_CandidatePosition;
+    int m_JumpCounter = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -49,55 +55,62 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        m_CurrMovePosition = m_RB2D.position;
+        m_CandidatePosition = m_RB2D.position;
 
         GroundCheck();
         HandleMovement();
 
-        if (m_CurrMovePosition != m_RB2D.position) {
-            m_RB2D.MovePosition(m_CurrMovePosition);
+        if (m_CandidatePosition != m_RB2D.position) {
+            m_RB2D.MovePosition(m_CandidatePosition);
         }
     }
 
     // set IsGrounded and m_GroundNormal appropriately
     void GroundCheck()
     {
-        IsGrounded = false;
-        m_GroundNormal = Vector2.up;
-        m_GroundCollider = null;
+        // Don't check grounding if ascending in the air (e.g. whilst in the upward section of jumping)
+        if (!IsGrounded && Velocity.y > 0f) {
+            Debug.Log("GroundCheck() skipped - airborne");
+            return;
+        }
 
-        RaycastHit2D hit = Physics2D.Raycast(Foot.position, Vector2.down, GroundCheckDistance, LayerMask.GetMask("Ground"));
+        ResetGrounding();
 
+        RaycastHit2D hit = Physics2D.Raycast(
+            transform.position,
+            Vector2.down,
+            (m_BoxCollider2D.size.y / 2) + GroundCheckDistance,
+            LayerMask.GetMask("Ground")
+        );
+        Debug.DrawRay(transform.position, Vector2.down * ((m_BoxCollider2D.size.y / 2) + GroundCheckDistance), Color.yellow, 1f);
+
+        // If ground was detected
         if (hit.collider != null) {
+            Debug.Log("Ground detected - " + hit.collider.name);
+
+            IsGrounded = true;
             m_GroundNormal = hit.normal;
             m_GroundCollider = hit.collider;
+            m_JumpCounter = 0;
 
-            // if (Vector2.Dot(hit.normal, transform.up) > 0f && Vector2.Angle(transform.up, hit.normal) < 45f) {
-            IsGrounded = true;
+            // Check steepness
+            if (Vector2.Dot(hit.normal, Vector2.up) < Mathf.Cos(MaximumGroundAngle * Mathf.Deg2Rad)) {
+                Debug.Log("Too steep");
+            }
 
             // Snap to ground
-            // Don't use hit.point as it returns things inside the other collider
-            m_CurrMovePosition = Physics2D.ClosestPoint(Foot.position, hit.collider) + (Vector2.up * m_BoxCollider2D.size.y / 2);
-
-            Debug.DrawRay(Physics2D.ClosestPoint(Foot.position, hit.collider), hit.normal);
-
-            // ground is on GroundUp but normal is for ground flat????
-
-            Debug.Log("Grounded on " + hit.collider.name);
+            m_CandidatePosition = hit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
+            Debug.DrawRay(hit.point, hit.normal, Color.magenta, 1f);
         } else {
-            Debug.Log("Not grounded");
+            Debug.Log("No ground detected");
         }
-
-        /*
-        // only try to detect ground if it's been a short amount of time since last jump; otherwise we may snap to the ground instantly after we try jumping
-        if (Time.time >= m_LastTimeJumped + k_JumpGroundingPreventionTime) {
-        }
-        */
     }
 
     void HandleMovement()
     {
         if (IsGrounded) {
+            Debug.Log("Grounded");
+
             float worldspaceMoveInput = m_InputHandler.GetMoveInput();
             float magnitude = worldspaceMoveInput * Speed;
 
@@ -106,72 +119,102 @@ public class Player : MonoBehaviour
 
             Velocity = directionOnSlope * magnitude;
 
-            /*
-                // jumping
-                if (IsGrounded && m_InputHandler.GetJumpInputDown()) {
-                    // force the crouch state to false
-                        // then, add the jumpSpeed value upwards
-                        CharacterVelocity += Vector3.up * JumpForce;
+            Debug.DrawRay(Foot.position, Velocity, Color.red, 1f);
 
-                        // remember last time we jumped because we need to prevent snapping to ground for a short time
-                        m_LastTimeJumped = Time.time;
+            // Basic jumping
+            if (m_InputHandler.GetJumpInputHeld()) {
+                Velocity = new Vector2(Velocity.x, 0f);
+                Velocity += Vector2.up * JumpForce;
+                m_JumpCounter++;
+                Debug.Log("Jump #" + m_JumpCounter);
 
-                        // Force grounding to false
-                        IsGrounded = false;
-                        m_GroundNormal = Vector3.up;
-                    }
-                }
-            */
+                ResetGrounding();
+            }
         } else {
-            // Air strafing
-            // ...
+            Debug.Log("Not grounded");
 
-            // Gravity
-            Velocity += Vector2.down * GravityDownForce * Time.fixedDeltaTime;
+            // Double jump
+            if (m_InputHandler.GetJumpInputDown() && m_JumpCounter < MaxJumps) {
+                Velocity = new Vector2(Velocity.x, 0f);
+                Velocity += Vector2.up * JumpForce;
+                m_JumpCounter++;
+                Debug.Log("Jump #" + m_JumpCounter);
+            } else {
+                // Gravity
+                Velocity += Vector2.down * GravityDownForce * Time.fixedDeltaTime;
+            }
         }
 
-        RaycastHit2D groundHit = new RaycastHit2D();
-        RaycastHit2D hit = new RaycastHit2D();
+        if (HandleObstructions()) {
+            return;
+        }
+
+        if (TransitionBetweenGrounds()) {
+            return;
+        }
+
+        m_CandidatePosition += Velocity * Time.fixedDeltaTime;
+        Debug.DrawRay(m_RB2D.position, Velocity * Time.fixedDeltaTime, Color.blue, 1f);
+    }
+
+    // Returns whether or not
+    bool TransitionBetweenGrounds()
+    {
+        if (!IsGrounded) {
+            return false;
+        }
 
         // problem is: when you're at the intersection of two or more grounds, you have to pick one ground. this is important as the direction of the ground determines the axis of movement, and you always want to be moving ALONG the ground rather than running into it
         // if a movement would see your foot move into a ground, stop. go to the point of intersection. check if valid ground. if valid, reorientate movement to that ground and proceed.
-        if (IsGrounded) {
-            foreach (RaycastHit2D h in Physics2D.RaycastAll(
-                Foot.position,
-                Velocity.normalized,
-                Velocity.magnitude * Time.fixedDeltaTime,
-                LayerMask.GetMask("Ground")
-            )) {
-                if (h.collider != null) {
-                    if (m_GroundCollider != null && h.collider.name == m_GroundCollider.name) {
-                        continue;
-                    }
 
-                    groundHit = h;
-                    break;
+        RaycastHit2D chosenGroundHit = new RaycastHit2D();
+
+        // Raycast the movement of the foot
+        foreach (RaycastHit2D hit in Physics2D.RaycastAll(
+            Foot.position,
+            Velocity.normalized,
+            Velocity.magnitude * Time.fixedDeltaTime,
+            LayerMask.GetMask("Ground")
+        )) {
+            if (hit.collider != null) {
+                if (m_GroundCollider != null && hit.collider.name == m_GroundCollider.name) {
+                    continue;
                 }
-            }
 
-            if (groundHit.collider != null) {
-                Debug.Log("switching from " + m_GroundCollider.name + " to " + groundHit.collider.name);
-
-                // Move to the intersection between the two grounds
-                m_CurrMovePosition = groundHit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
-                Debug.DrawRay(groundHit.point, Vector2.up, Color.red, 3f);
-
-                // Reorientate the remaining length of movement on the new ground
-                float mag = Math.Abs(Velocity.magnitude) - groundHit.distance;
-                mag = Velocity.x < 0 ? -mag : mag;
-                Velocity = PerpendicularClockwise(groundHit.normal).normalized * mag;
-
-                // Move the remaining distance
-                Debug.DrawLine(groundHit.point, groundHit.point + Velocity * Time.fixedDeltaTime, Color.green, 3f);
-                m_CurrMovePosition += Velocity * Time.fixedDeltaTime;
-                return;
+                chosenGroundHit = hit;
+                break;
             }
         }
 
-        foreach (RaycastHit2D h in Physics2D.BoxCastAll(
+        if (chosenGroundHit.collider != null) {
+            Debug.Log("Transitioning grounds from " + m_GroundCollider.name + " to " + chosenGroundHit.collider.name);
+
+            // Move to the intersection between the two grounds
+            m_CandidatePosition = chosenGroundHit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
+            Debug.DrawRay(chosenGroundHit.point, Vector2.up, Color.white, 1f);
+
+            // Reorientate the remaining length of movement on the new ground
+            float mag = Math.Abs(Velocity.magnitude) - chosenGroundHit.distance;
+            mag = Velocity.x < 0 ? -mag : mag;
+            Velocity = PerpendicularClockwise(chosenGroundHit.normal).normalized * mag;
+
+            // Move the remaining distance
+            Debug.DrawLine(chosenGroundHit.point, chosenGroundHit.point + Velocity * Time.fixedDeltaTime, Color.green, 3f);
+            m_CandidatePosition += Velocity * Time.fixedDeltaTime;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // Checks for obstructions and sets m_CandidatePosition and Velocity appropriately if an obstruction is detected. Returns whether or not an obstruction is detected.
+    bool HandleObstructions()
+    {
+        RaycastHit2D obstructionHit = new RaycastHit2D();
+
+        // Boxcast from the current position to the candidate position
+        foreach (RaycastHit2D hit in Physics2D.BoxCastAll(
             m_RB2D.position,
             m_BoxCollider2D.size,
             0f,
@@ -179,25 +222,33 @@ public class Player : MonoBehaviour
             Velocity.magnitude * Time.fixedDeltaTime,
             LayerMask.GetMask("Wall")
         )) {
-            if (h.collider != null && h.collider != m_GroundCollider) {
-                hit = h;
+            if (hit.collider != null) {
+                obstructionHit = hit;
                 break;
             }
         }
 
         // Debug.Log("Candidate: " + m_RB2D.position.y + " -> " + (m_RB2D.position + Velocity * Time.fixedDeltaTime).y);
-        if (hit.collider == null) {
-            m_CurrMovePosition += Velocity * Time.fixedDeltaTime;
-            // Debug.Log("Success");
-        } else {
-            m_CurrMovePosition = hit.centroid - Velocity.normalized * WallRepel;
+        if (obstructionHit.collider != null) {
+            Debug.Log("Obstructed by " + obstructionHit.collider.name);
 
-            // Cancel out momentum - relevant if not grounded
+            // Set position to a specified distance from the obstruction following the direction of the current velocity
+            m_CandidatePosition = obstructionHit.centroid - Velocity.normalized * WallRepel;
+
+            // Cancel out momentum
             Velocity = Vector2.zero;
     
-            Debug.Log("Obstructed - name: " + hit.collider.name + ", normal: " + hit.normal);
-            Debug.DrawRay(hit.centroid, hit.normal);
+            return true;
         }
+
+        return false;
+    }
+
+    void ResetGrounding()
+    {
+        IsGrounded = false;
+        m_GroundNormal = Vector2.up;
+        m_GroundCollider = null;
     }
 
     public Vector2 PerpendicularClockwise(Vector2 vec)
