@@ -6,7 +6,7 @@ using UnityEngine;
 
 public static class Debugger
 {
-    const bool enableDebugging = false;
+    const bool enableDebugging = true;
 
     public static void Log(object message) {
         if (!enableDebugging) {
