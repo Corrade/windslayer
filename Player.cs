@@ -12,6 +12,9 @@ public class Player : MonoBehaviour
     [Tooltip("Distance from the bottom of the character to raycast for the ground")]
     public float GroundCheckDistance = 0.05f;
 
+    [Tooltip("Ground planes steeper than this value (in degrees) will instead be considered as obstructions")]
+    public float MaximumGroundAngle = 45f;
+
     [Tooltip("Horizontal speed")]
     public float Speed = 5f;
 
@@ -27,16 +30,13 @@ public class Player : MonoBehaviour
     [Tooltip("Maximum number of times the player can jump without landing")]
     public int MaxJumps = 2;
 
-    [Tooltip("Ground planes steeper than this value (in degrees) will instead be considered as obstructions")]
-    public float MaximumGroundAngle = 45f;
-
     [Tooltip("The empty child game object representing the point of contact between the player and the ground")]
     public Transform Foot;
 
-    public Vector2 Velocity { get; set; }
+    public Vector2 CandidateVelocity { get; set; }
     public bool IsGrounded { get; private set; }
 
-    BoxCollider2D m_BoxCollider2D;
+    BoxCollider2D m_CollisionCollider;
     Rigidbody2D m_RB2D;
     InputHandler m_InputHandler;
 
@@ -50,7 +50,7 @@ public class Player : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        m_BoxCollider2D = GetComponent<BoxCollider2D>();
+        m_CollisionCollider = GetComponent<BoxCollider2D>();
         m_RB2D = GetComponent<Rigidbody2D>();
         m_InputHandler = GetComponent<InputHandler>();
     }
@@ -62,46 +62,43 @@ public class Player : MonoBehaviour
 
         GroundCheck();
         ProposeVelocity();
-        if (!AdjustVelocityForObstructions()) {
-            AdjustVelocityForGroundTransition();
-        }
+        AdjustVelocityForObstructions();
 
-        // Move along the final velocity
-        m_CandidatePosition += Velocity * Time.fixedDeltaTime;
-        Debugger.DrawRay(m_RB2D.position, Velocity * Time.fixedDeltaTime, Color.blue, 1f);
+        // Move along the final CandidateVelocity
+        m_CandidatePosition += CandidateVelocity * Time.fixedDeltaTime;
 
         if (m_CandidatePosition != m_RB2D.position) {
-            Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition));
+            // Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition) + ", CandidateVelocity = " + Debugger.Vector2Full(CandidateVelocity));
+            // Debugger.DrawRay(m_RB2D.position, CandidateVelocity * Time.fixedDeltaTime, Color.blue, 1f);
             m_RB2D.MovePosition(m_CandidatePosition);
         }
     }
 
-    // set IsGrounded and m_GroundNormal appropriately
+    // Check whether or not the player is grounded and set the related variables appropriately
     void GroundCheck()
     {
-        // Don't check grounding if ascending in the air (e.g. whilst in the upward section of jumping)
+        // Don't check grounding if ascending in the air, e.g. whilst in the upward section of jumping
         if (IsRising()) {
-            Debugger.Log("GroundCheck() skipped - airborne");
+            // Debugger.Log("GroundCheck() skipped - airborne");
             return;
         }
 
-
-        RaycastHit2D hit = Physics2D.Raycast(
-            transform.position,
+        // Cast the collision collider down by GroundCheckDistance units
+        foreach (RaycastHit2D hit in Physics2D.BoxCastAll(
+            m_CandidatePosition,
+            m_CollisionCollider.size,
+            0f,
             Vector2.down,
-            (m_BoxCollider2D.size.y / 2) + GroundCheckDistance,
-            LayerMask.GetMask("Wall", "Ground")
-        );
-        Debugger.DrawRay(transform.position + Vector3.down * (m_BoxCollider2D.size.y / 2), Vector2.down * GroundCheckDistance, Color.yellow, 1f);
-
-        // If ground was detected
-        if (hit.collider != null) {
-            if (IsTooSteep(hit.normal)) {
-                Debug.Log("Ground Transition: too steep is " + hit.collider.name + ", not grounded");
-                return;
+            GroundCheckDistance,
+            LayerMask.GetMask("Collidable")
+        )) {
+            // Ignore if nothing was obtained or if the ground is too steep
+            if (hit.collider == null || IsTooSteep(hit.normal)) {
+                continue;
             }
 
-            Debugger.Log("Grounded on " + hit.collider.name + ", normal=" + hit.normal);
+            // Debugger.Log("Grounded on " + hit.collider.name + ", normal=" + hit.normal);
+            // Debugger.DrawRay(hit.point, hit.normal, Color.magenta, 1f);
 
             IsGrounded = true;
             m_GroundNormal = hit.normal;
@@ -109,147 +106,123 @@ public class Player : MonoBehaviour
             m_JumpCounter = 0;
 
             // Snap to ground
-            m_CandidatePosition = hit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
-            Debugger.DrawRay(hit.point, hit.normal, Color.magenta, 1f);
-        } else {
-            Debugger.Log("No ground detected");
+            m_CandidatePosition = hit.centroid;
 
-            if (IsGrounded) {
-                ResetGrounding();
-            }
-        }
-    }
-
-    void ProposeVelocity()
-    {
-        float worldspaceMoveInput = m_InputHandler.GetMoveInput();
-
-        if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
-            float inputMagnitude = worldspaceMoveInput * Speed;
-            Velocity = inputMagnitude * VectorAlongSurface(m_GroundNormal);
-
-            Debugger.DrawRay(Foot.position, Velocity, Color.red, 1f);
-
-            // Check for jump
-            if (m_InputHandler.JumpInputDown) {
-                m_InputHandler.JumpInputDown = false;
-
-                SetVelocityToJump();
-                ResetGrounding();
-            }
-        } else {
-            float inputMagnitude = worldspaceMoveInput * AirStrafeSpeed;
-
-            // Check for airborne jump
-            if (m_InputHandler.JumpInputDown && m_JumpCounter < MaxJumps) {
-                m_InputHandler.JumpInputDown = false;
-
-                SetVelocityToJump();
-            } else {
-                if (IsGrounded && IsTooSteep(m_GroundNormal)) { // If on a steep wall, don't allow any non-jump input and just slide
-                    Debug.Log("Sliding down wall");
-                    Velocity -= VectorAlongSurface(m_GroundNormal) * GravityDownForce * Time.fixedDeltaTime;
-                } else {
-                    Velocity = new Vector2(Mathf.Lerp(Velocity.x, inputMagnitude, AirStrafeInfluenceSpeed * Time.fixedDeltaTime), Velocity.y - GravityDownForce * Time.fixedDeltaTime); // probably lerp to input magnitude instead
-                }
-            }
-        }
-    }
-
-    // Checks for obstructions and sets m_CandidatePosition and Velocity appropriately if an obstruction is detected. Returns whether or not an obstruction is detected.
-    bool AdjustVelocityForObstructions()
-    {
-        RaycastHit2D obstructionHit = new RaycastHit2D();
-
-        // Boxcast from the current position to the candidate position
-        foreach (RaycastHit2D hit in Physics2D.BoxCastAll(
-            m_CandidatePosition + Velocity.normalized * 0.01f, // offset
-            new Vector2(0.01f, m_BoxCollider2D.size.y),
-            0f,
-            Velocity.normalized,
-            (Velocity.magnitude - 0.01f) * Time.fixedDeltaTime,
-            LayerMask.GetMask("Wall", "Ground")
-        )) {
-            if (hit.collider != null && IsTooSteep(hit.normal)) {
-                obstructionHit = hit;
-                break;
-            }
-        }
-
-        if (obstructionHit.collider != null) {
-            Debugger.Log("Obstructed by " + obstructionHit.collider.name + " with Velocity=" + Velocity + ", normal=" + obstructionHit.normal);
-
-            // Move to stop at the obstruction
-            m_CandidatePosition = obstructionHit.centroid - Velocity.normalized * 0.01f; // reverse offset
-            Debug.Log("Moving to centroid " + Debugger.Vector2Full(obstructionHit.centroid));
-
-            Debugger.DrawRay(m_CandidatePosition, obstructionHit.normal, Color.green, 1f);
-
-            // Reorientate the velocity to slide down the obstruction
-            Velocity = Vector2.zero;
-            // Velocity = -Velocity.magnitude * VectorAlongSurface(obstructionHit.normal);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    // Checks if the candidate movement (Velocity) would cause the character to switch from one ground to another. If so, the character's movement is reoriented along the ground transition.
-    // This is necessary as normally the direction of the ground determines the direction of movement, but you don't to want into another ground
-    void AdjustVelocityForGroundTransition()
-    {
-        if (!IsGrounded) {
+            // Take the first ground
             return;
         }
 
-        RaycastHit2D nextGroundHit = new RaycastHit2D();
-
-        // Raycast the movement of the foot
-        foreach (RaycastHit2D hit in Physics2D.RaycastAll(
-            m_CandidatePosition + (Vector2.down * m_BoxCollider2D.size.y / 2), // Foot.position,
-            Velocity.normalized,
-            Velocity.magnitude * Time.fixedDeltaTime,
-            LayerMask.GetMask("Ground")
-        )) {
-            if (hit.collider != null) {
-                if (m_GroundCollider != null && hit.collider.name == m_GroundCollider.name) {
-                    continue;
-                }
-
-                if (IsTooSteep(hit.normal)) {
-                    Debug.Log("Ground Transition: too steep is " + hit.collider.name);
-                    continue;
-                }
-
-                nextGroundHit = hit;
-                break;
-            }
-        }
-
-        if (nextGroundHit.collider != null) {
-            Debugger.Log("Transitioning grounds from " + m_GroundCollider.name + " to " + nextGroundHit.collider.name + " with Velocity=" + Velocity);
-
-            // Move to the intersection between the two grounds
-            m_CandidatePosition = nextGroundHit.point + (Vector2.up * m_BoxCollider2D.size.y / 2);
-            Debugger.DrawRay(nextGroundHit.point, Vector2.up, Color.white, 1f);
-
-            // Reorientate the remaining length of movement on the new ground
-            float mag = Mathf.Sign(Velocity.x) * (Mathf.Abs(Velocity.magnitude) - nextGroundHit.distance);
-            Velocity = VectorAlongSurface(nextGroundHit.normal) * mag;
-        }
-    }
-
-    void ResetGrounding()
-    {
+        // Debugger.Log("No ground detected");
         IsGrounded = false;
         m_GroundNormal = Vector2.up;
         m_GroundCollider = null;
     }
 
+    // Sets CandidateVelocity based on input and grounding
+    void ProposeVelocity()
+    {
+        float worldspaceMoveInput = m_InputHandler.GetMoveInput();
+
+        if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
+            // Grounded movement
+            float inputMagnitude = worldspaceMoveInput * Speed;
+            CandidateVelocity = inputMagnitude * VectorAlongSurface(m_GroundNormal);
+
+            // Grounded jump
+            if (m_InputHandler.RetrieveJumpInputDown()) {
+                Jump();
+            }
+        } else {
+            // Air jump
+            if (m_InputHandler.RetrieveJumpInputDown() && m_JumpCounter < MaxJumps) {
+                Jump();
+            } else {
+                if (IsGrounded && IsTooSteep(m_GroundNormal)) {
+                    // Sliding down a steep surface
+                    // Debug.Log("Sliding down wall");
+                    CandidateVelocity -= VectorAlongSurface(m_GroundNormal) * GravityDownForce * Time.fixedDeltaTime;
+                } else {
+                    // Air strafing
+                    float inputMagnitude = worldspaceMoveInput * AirStrafeSpeed;
+                    CandidateVelocity = new Vector2(
+                        Mathf.Lerp(CandidateVelocity.x, inputMagnitude, AirStrafeInfluenceSpeed * Time.fixedDeltaTime),
+                        CandidateVelocity.y - GravityDownForce * Time.fixedDeltaTime
+                    );
+                }
+            }
+        }
+    }
+
+    // Checks for obstructions and sets m_CandidatePosition and CandidateVelocity appropriately if an obstruction is detected
+    void AdjustVelocityForObstructions()
+    {
+        // Cast the collision collider in the direction of CandidateVelocity
+        foreach (RaycastHit2D hit in Physics2D.BoxCastAll(
+            m_CandidatePosition,
+            m_CollisionCollider.size,
+            0f,
+            CandidateVelocity.normalized,
+            CandidateVelocity.magnitude * Time.fixedDeltaTime,
+            LayerMask.GetMask("Collidable")
+        )) {
+            // Ignore if nothing was collided with
+            if (hit.collider == null) {
+                continue;
+            }
+
+            // Ignore if the collider isn't actually being moved into, i.e. if the player is just inside/on the collider
+            if (!IsMovingInto(CandidateVelocity.normalized, hit.normal)) {
+                continue;
+            }
+
+            // Debugger.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
+
+            // Snap to the obstruction
+            m_CandidatePosition = hit.centroid;
+
+            // Subtract the distance that was moved by snapping
+            float remainingMagnitude = Mathf.Sign(CandidateVelocity.magnitude) * (Mathf.Abs(CandidateVelocity.magnitude) - hit.distance);
+
+            if (IsGrounded) {
+                if (IsTooSteep(hit.normal)) {
+                    // Moving from ground -> steep ground: stop motion, don't allow players to walk onto steep surfaces
+                    CandidateVelocity = Vector2.zero;
+                } else {
+                    // Moving from ground -> regular ground: reorientate movement along the next ground
+                    CandidateVelocity = remainingMagnitude * VectorAlongSurface(hit.normal);
+                }
+            } else {
+                if (IsTooSteep(hit.normal)) {
+                    // Moving from air -> steep ground: reorientate movement to slide/fall down the ground
+                    CandidateVelocity = remainingMagnitude * -VectorAlongSurface(hit.normal);
+                } else {
+                    // Moving from air -> regular ground: stop motion, player can take over
+                    CandidateVelocity = Vector2.zero;
+                }
+            }
+        }
+    }
+
+    // Returns whether or not direction is moving into the surface with the given normal. Assumes both parameters are normalized.
+    bool IsMovingInto(Vector2 direction, Vector2 normal)
+    {
+        // If direction is within +-90 degrees of the vector moving into the surface
+        return Vector2.Dot(-normal, direction) > 0.01f;
+    }
+
+    // Returns the vector pointing up the surface with the given normal
     Vector2 VectorAlongSurface(Vector2 normal)
     {
-        return PerpendicularClockwise(normal).normalized;
+        if (normal.x <= 0) { // Left-facing
+            return PerpendicularClockwise(normal).normalized;
+        } else {
+            return PerpendicularAntiClockwise(normal).normalized;
+        }
+    }
+
+    Vector2 PerpendicularAntiClockwise(Vector2 vec)
+    {
+        return new Vector2(-vec.y, vec.x);
     }
 
     Vector2 PerpendicularClockwise(Vector2 vec)
@@ -257,12 +230,11 @@ public class Player : MonoBehaviour
         return new Vector2(vec.y, -vec.x);
     }
 
-    void SetVelocityToJump()
+    void Jump()
     {
-        Velocity = new Vector2(Velocity.x, JumpForce);
-
+        CandidateVelocity = new Vector2(CandidateVelocity.x, JumpForce);
         m_JumpCounter++;
-        Debugger.Log("Jump #" + m_JumpCounter);
+        // Debugger.Log("Jump #" + m_JumpCounter);
     }
 
     // Given the normal of a ground, returns whether or not it's too steep
@@ -271,9 +243,9 @@ public class Player : MonoBehaviour
         return Vector2.Dot(normal, Vector2.up) < Mathf.Cos(MaximumGroundAngle * Mathf.Deg2Rad);
     }
 
-    // Returns whether or not the character is in the air and moving upwards, which will be the case if they're rising jumping, for example
+    // Returns whether or not the character is in the air and moving upwards
     bool IsRising()
     {
-        return !IsGrounded && Velocity.y > 0f;
+        return !IsGrounded && CandidateVelocity.y > 0f;
     }
 }

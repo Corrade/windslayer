@@ -8,12 +8,12 @@ public class InputHandler : MonoBehaviour
     const string k_AxisNameVertical = "Vertical";
     const string k_ButtonNameJump = "Jump";
 
-    public bool JumpInputDown { get; set; }
+    bool m_JumpInputDown;
 
     void Update()
     {
         if (Input.GetButtonDown(k_ButtonNameJump)) {
-            JumpInputDown = true;
+            m_JumpInputDown = true;
         }
     }
 
@@ -35,5 +35,16 @@ public class InputHandler : MonoBehaviour
         }
         
         return Input.GetButton(k_ButtonNameJump);
+    }
+
+    // Checks if the jump input has been pressed down since the last time this function was called. This is intended to be called every frame from FixedUpdate() since GetButtonDown() itself doesn't reliably work when called from FixedUpdate().
+    public bool RetrieveJumpInputDown()
+    {
+        if (m_JumpInputDown) {
+            m_JumpInputDown = false;
+            return true;
+        }
+
+        return false;
     }
 }
