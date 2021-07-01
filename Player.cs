@@ -18,6 +18,9 @@ public class Player : MonoBehaviour
     [Tooltip("Air strafe speed")]
     public float AirStrafeSpeed = 3f;
 
+    [Tooltip("Air strafe lerp speed")]
+    public float AirStrafeInfluenceSpeed = 3f;
+
     [Tooltip("Force applied upwards when jumping")]
     public float JumpForce = 6f;
 
@@ -44,8 +47,6 @@ public class Player : MonoBehaviour
     Vector2 m_CandidatePosition;
     int m_JumpCounter = 0;
 
-    float m_OriginalXVelocity;
-
     // Start is called before the first frame update
     void Start()
     {
@@ -61,7 +62,6 @@ public class Player : MonoBehaviour
 
         GroundCheck();
         ProposeVelocity();
-        AdjustVelocityForSliding();
         if (!AdjustVelocityForObstructions()) {
             AdjustVelocityForGroundTransition();
         }
@@ -115,7 +115,6 @@ public class Player : MonoBehaviour
             Debugger.Log("No ground detected");
 
             if (IsGrounded) {
-                Debug.Log("m_OriginalXVelocity = " + Velocity.x);
                 ResetGrounding();
             }
         }
@@ -125,9 +124,9 @@ public class Player : MonoBehaviour
     {
         float worldspaceMoveInput = m_InputHandler.GetMoveInput();
 
-        if (IsGrounded) {
-            float magnitude = worldspaceMoveInput * Speed;
-            Velocity = magnitude * VectorAlongSurface(m_GroundNormal);
+        if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
+            float inputMagnitude = worldspaceMoveInput * Speed;
+            Velocity = inputMagnitude * VectorAlongSurface(m_GroundNormal);
 
             Debugger.DrawRay(Foot.position, Velocity, Color.red, 1f);
 
@@ -139,7 +138,7 @@ public class Player : MonoBehaviour
                 ResetGrounding();
             }
         } else {
-            float magnitude = worldspaceMoveInput * AirStrafeSpeed;
+            float inputMagnitude = worldspaceMoveInput * AirStrafeSpeed;
 
             // Check for airborne jump
             if (m_InputHandler.JumpInputDown && m_JumpCounter < MaxJumps) {
@@ -147,19 +146,13 @@ public class Player : MonoBehaviour
 
                 SetVelocityToJump();
             } else {
-                // Gravity
-                Velocity = new Vector2(magnitude == 0 ? m_OriginalXVelocity : magnitude, Velocity.y - GravityDownForce * Time.fixedDeltaTime);
+                if (IsGrounded && IsTooSteep(m_GroundNormal)) { // If on a steep wall, don't allow any non-jump input and just slide
+                    Debug.Log("Sliding down wall");
+                    Velocity -= VectorAlongSurface(m_GroundNormal) * GravityDownForce * Time.fixedDeltaTime;
+                } else {
+                    Velocity = new Vector2(Mathf.Lerp(Velocity.x, inputMagnitude, AirStrafeInfluenceSpeed * Time.fixedDeltaTime), Velocity.y - GravityDownForce * Time.fixedDeltaTime); // probably lerp to input magnitude instead
+                }
             }
-        }
-    }
-
-    void AdjustVelocityForSliding()
-    {
-        if (IsGrounded && IsTooSteep(m_GroundNormal)) {
-            Debugger.Log("Sliding on " + m_GroundCollider.name + " with Velocity=" + Velocity);
-
-            // Reorientate the velocity to slide down the obstruction
-            Velocity = -Velocity.magnitude * VectorAlongSurface(m_GroundNormal);
         }
     }
 
@@ -266,7 +259,6 @@ public class Player : MonoBehaviour
 
     void SetVelocityToJump()
     {
-        m_OriginalXVelocity = Velocity.x;
         Velocity = new Vector2(Velocity.x, JumpForce);
 
         m_JumpCounter++;
