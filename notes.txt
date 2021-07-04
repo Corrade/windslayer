@@ -1,16 +1,18 @@
 
-sideways movement (ad)
-jumping (w)
 one-way platforms (when player velocity is positive, set one-way platform collision mask bit off
 falling down platforms (s)
 dash
-double jump
 basic attack
 strong attack
 guard (block basic attack)
-interact (spacebar)
-entering portals (d - potentially remove with spacebar and auto-move)
 skills
+hp and mana
+respawning
+
+server browser
+connecting to server
+game end conditions
+scoreboard
 
 menus
     top
@@ -26,18 +28,6 @@ menus
         map
         social (friends, guild)
 
-start-up, active, recovery, frame adv. on hit, frame adv. on block, damage, (+ stun)
-
-a thin client that only sends input state to the server, interpolates between received states and performs some prediction for smoothness
-
-for example, suppose the client sends their position to the server. what stops them from teleporting by intercepting the packet and inserting their own position?
-- does the server perhaps perform checks so that impossible movements are screened out?
-- in this case, would it be better to send inputs rather than positions from the client? that is, is the problem with this specific example moreso related to the choice of communicated data?
-
-concerns: bandwidth and server speed.
-
-suppose you send 100 B every 1/60th of a second. that's 6 KB per second and 21.6 MB per hour.
-
 https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
 https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
 https://en.wikipedia.org/wiki/Netcode
@@ -46,36 +36,321 @@ https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
 https://www.gabrielgambetta.com/client-server-game-architecture.html
 
 "Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
-prediction implies rollback in the case of faulty predictions
-no prediction = delay-based
 
 client side prediction uses the same code that the server uses for movement checking/logic
 
 
-
 always send inputs, not position
-
-q
-    hi, i've got a security question:
-    suppose you're sending players the positional data of everybody in the server. you want to protect this information because it's supposed to be hidden in-game, so players shouldn't be able to inspect incoming packets and discover the positions of everyone else. is there a standard approach to addressing this problem?
-
-    - i imagine using a secure communication protocol would be far too slow.
-    - perhaps it's best to sort of give up and instead invest effort in detection rather than prevention?
-    - maybe one shouldn't be sending all that positional data anyway and should instead only send the data of other players that are actually visible?
-
-    hmm, what's recommended?
-
-a
-    a secure protocol won't help, your game client will still need to be able to decode it at some point and the decoded data can be read from memory - you can make this harder to do with anti-cheat countermeasures, but you won't be able to completely defeat any dedicated attempts without standing behind the user to slap them when they make the attempt.
-
-    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret.
+not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
 
 
 
-all collider edges that aren't too steep are treated as grounds.
-otherwise, the edge is an obstruction.
+keys
+    toggle chat
+    move left
+    move right
+    jump
+    crouch
+    settings
+    quests
+    map
+    social tab
+    inventory
+    equipment
+    character sheet
+    skills
+    pvp menu
+    pick up
+    interact
+    ABILITY KEYBINDS
 
 
-BUG: if you jump from one ground to a new one, you mometarily dip below the surface and are then snapped back up
-BUG: shouldn't be able to ascend grounds that are too steep
-combine grounds and wall. not too steep = ground. too steep = obstruction.
+
+
+
+
+class: ability
+    ability.add(effect);
+    collider(collidable, 
+
+class: effect
+    buff
+    local attack (spawn hitbox static relative to player)
+    world attack (spawn hitbox static relative to world)
+    interpolated attack (spawn smoothly-interpolated hitbox, e.g. horizontal projectile)
+    complex moving attack (spawn a pre-defined sequences of different hitboxes)
+    lingering attack (spawn hitbox that persists after the move recovers)
+    player movement/lack thereof during active
+
+    start active, stop active
+
+ability, virtual
+    startup frame count
+    recovery frame count
+    on startup interrupt
+    on recovery interrupt
+
+attack : ability, virtual
+    active frame count
+    hit stun
+    block stun
+    attacker stun
+    damage
+    heal
+
+localAttack : attack
+// the created hitbox is attached to the player and moves relative to it
+// no notion of an active frame
+// melee
+
+worldAttack : attack
+// the created hitbox is attached to the world and moves relative to it
+// no notion of active frames - 
+// if the player is interrupted after the hitbox has been created, the hitbox persists
+// projectiles, active summons
+
+movement : ability
+    active frame count
+
+buff : ability
+    status
+
+
+
+
+movement hooks
+    cancel velocity
+    restrict input
+    stun: cancel all velocity, restrict all input
+
+actually attcaker stun may only apply to basic/strong attacks, and attacker stun & hit stun actually prevent gravity, not just input movement
+
+during startup and recovery, the player may not provide any movement or ability input, but they're still affected by their existing momentum (sliding and gravity)
+
+
+
+ability manager
+settings manager
+record manager (name, class, rank, pvp stats)
+social manager (friends, guild)
+item manager (equipment, inventory)
+quest manager
+map manager (position in map, seen areas, etc.)
+
+
+
+hold jump to jump further? also the ws jump is super high
+
+https://www.youtube.com/watch?v=HOZqk6jDPIc
+actually attacker stun is only in the air. strong attack on ground is super slow, strong attack on air is super fast but has attacker stun.
+
+
+startup -> active -?> attacker stun -> recovery
+enemy -> block stun or hit stun
+block stun < attacker stun < hit stun
+    windslayer: attacker stun. if the attacker connects a hit (not blocked), they're also stunned, but for a shorter time than hit stun. accordingly, hit stun is a lot longer than usual.
+    windslayer has very long frame times in general. this makes it relatively slow-paced and manageable, which is fun.
+
+air strong attack (can flip directions) interrupt if hit ground
+
+
+
+        public UnityAction<float, GameObject> OnDamaged;
+        public UnityAction<float> OnHealed;
+        public UnityAction OnDie;
+        OnDie?.Invoke();
+    
+        // subscribe as: m_Health.OnDie += OnDie;
+
+
+// state machine perhaps excessive since startup and recovery are trivial and the active frame / middle is what's really important?    
+// gotta think if this will apply to all abilities i wanna make
+
+Ability.cs // state machine where all the order of state progression is defined from the start, enabling an array structure
+    public State[] m_States;
+    public int m_CurrentStateIdx;
+
+    public void AddState() {
+        m_States.append(startingState);
+    }
+
+    public void StartAbility() {
+        startingState.Enter();
+    }
+
+    public void RunState() {
+        m_States[m_CurrentStateIdx].Run();
+    }
+
+    // have an udpate here that clales RunState() itself after the ability has been started? or have an outside etntiy call RunState
+
+    public void ChangeState(State newState) {
+        m_States[m_CurrentStateIdx].Exit();
+        m_CurrentStateIdx++;
+        // if end
+        m_States[m_CurrentStateIdx].Enter();
+    }
+
+// transitions call stateMachine.ChangeState(whatever instance);
+AbilityState (State)
+    State m_StateMachine; // passed in constructor
+    int m_FramesRemaining;
+
+    AbilityState(State stateMachine, int frameDuration) {
+        m_StateMachine = stateMachine;
+        m_FramesRemaining = frameDuration;
+    }
+
+    public virtual void Enter();
+    
+    public virtual void Run();
+    // m_FramesRemaining--. if == 0, m_StateMachine.ChangeState(?)
+    
+    public virtual void Exit();
+
+Hitbox class
+    Transform m_Attacker;
+    func m_HitCallback;
+    ? targeting; // attacker, teammates, enemies, etc.
+
+    Curve m_Curve;
+    Vector2 m_UnitialPos;
+    float m_TimeElapsed;
+    float m_MaxDuration;
+
+    Hitbox() {
+        assign attacker
+        assign parent
+        assign onHitCallback
+        assign initialPos
+    }
+
+    FixedUpdate() {
+        check for collisions obeying the specified targeting
+        suppose you collide with player x { // (or foreach player collided with)
+            hit(x)
+            hitCallback(x) // attacker stun
+        }
+
+        position = parent.position + curve(timeElapsed);
+        timeElapsed += Time.FixedDeltaTime;
+        if (timeElapsed >= maxDuration) {
+            destroy self
+        }
+    }
+
+    Hit(Transform player) {
+        // both will be modified by the victim if they're blocking. call a different function to bypass blocking
+        player.takeDamage(dmg, hit stun)
+        // destroy unless pierce or aoe
+    }
+
+    spawn hitbox that moves given a 
+        & an optional speed modifier s*t
+
+    // and how to handle hitboxes that change size?
+
+
+GameManager.cs
+    public StateMachine movementSM;
+    public StandingState standing;
+    public DuckingState ducking;
+    public JumpingState jumping;
+
+    private void Start() {
+        movementSM = new StateMachine();
+
+        standing = new StandingState(this, movementSM);
+        ducking = new DuckingState(this, movementSM);
+        jumping = new JumpingState(this, movementSM);
+
+        movementSM.Initialize(standing);
+    }
+
+    private void Update() {
+        movementSM.CurrentState.HandleInput();
+        movementSM.CurrentState.LogicUpdate();
+    }
+
+    private void FixedUpdate() {
+        movementSM.CurrentState.PhysicsUpdate();
+    }
+
+
+
+
+abilities https://docs.google.com/spreadsheets/d/1QUnXIzWVExO5JoW9OS_05YbLq0kzF8RGI3YQcIGdbmk/edit?usp=drive_web&ouid=108112850293498042381
+
+mage v warrior https://www.youtube.com/watch?v=rKdISL55qhg
+team fight https://www.youtube.com/watch?v=W3ci2qglLWo
+counter vs shaolin https://www.youtube.com/watch?v=YG4tUOohzkk
+various 1v1s https://www.youtube.com/watch?v=RMUTTRkjOP4
+    1:54: block stun < attacker stun < hit stun.
+
+oo https://docs.google.com/document/d/1tVc7g_WdPEFBj_nemLt3S26gVPeTTZRs0MWle653z_Q/edit
+    often in pursuit of maximum flexibility (minimal immobility), you introduce needless complexity
+
+    design smells
+        - rigidity: change is difficult, often requiring multiple other changes to be made
+        - fragility: a single change causes widespread breakage
+        - immobility: the design is hard to reuse
+        - viscosity
+            - software viscosity: change is easier to implement through hacks rather than good practices
+            - environment viscosity: development environment is slow and inefficient
+        - opacity: difficult to understand
+        - needless complexity: contains constructs that are not currently useful. usually a symptom of developers being too far ahead of requirements
+        - needless repetition
+        - data clumps: different sections of code contain identical clumps of data, e.g. fields in many classes, parameters in many methods. consider consolidating these things into a new class and passing around larger objects, e.g. entire ‘classes’ rather than fields
+        - refused bequest: when a subclass doesn’t use or must redefine something in the superclass. consider revising the inheritance and pushing fields and methods from the superclass into subclasses. e.g. if an engineer class inherits an employee class that is mostly suitable but has sales quota fields and methods that the engineer never uses, one should consider moving that sales information to a salesperson subclass
+        - switch statements. prefer polymorphism and consider the strategy pattern
+
+    characteristics of good design
+        - loose coupling: small chains of dependencies between modules
+        - high cohesion: modules and classes are themed and internally unified by some goal
+
+    design principles
+        - apply design principles only in response to design smells, not just randomly
+        - unconditionally conforming to a principle often leads to needless complexity
+        - solid
+            - single responsibility principle: a class should only have a single responsibility
+            - open-closed principle: software entities should be open for extension but closed for modification
+            - liskov substitution principle: subtypes must be substitutable for their base types. all of a superclass’ methods should make - sense in the context of a subclass
+            - interface segregation principle: many client-specific interfaces are better than one general-purpose interface
+            - dependency inversion principle: one should ‘depend upon abstractions, not concretions’
+        - law of demeter/principle of least knowledge
+            - classes should know about and interact with as few classes as possible
+            - classes that are known/interacted with should be nearby
+        - reduce long segments of code by extracting methods
+            - identify legs where certain variables aren’t changed; they can be parameters to a new function
+        - move methods so that they belong to the class of whose data they use the most
+        - encapsulate to protect, e.g. setters and getters
+        - program to an interface, not an implementation
+        - when implementing different variations of an entity, favour polymorphism/subclassing over conditional logic with variables
+            - not suitable if you need to be able to change variations
+            - not suitable if it’ll result in an overwhelming number of classes, particularly if there are multiple things being varied
+        - favor composition over inheritance
+
+c#
+    public: access is not restricted.
+    protected: access is limited to the containing class or types derived from the containing class.
+    internal: access is limited to the current assembly.
+    protected internal: access is limited to the current assembly or types derived from the containing class.
+    private: access is limited to the containing type.
+    private protected: access is limited to the containing class or types derived from the containing class within the current assembly. available since c# 7.2.
+
+
+    virtual vs abstract
+        an abstract function cannot have functionality. you're basically saying, any child class must give their own version of this method, however it's too general to even try to implement in the parent class.
+
+        a virtual function, is basically saying look, here's the functionality that may or may not be good enough for the child class. so if it is good enough, use this method, if not, then override me, and provide your own functionality. and remember you can reference this the parent's implemention from the child using the base keyword, so there's still a point to specifying a virtual function that's always gonna be overriden.
+
+    singleton vs static stuff
+        A singleton allows access to a single created instance - that instance (or rather, a reference to that instance) can be passed as a parameter to other methods, and treated as a normal object.
+
+        A static class allows only static methods.
+
+        Plus static variables can't be exposed to the editor.
+
+    design patterns
+        https://en.wikipedia.org/wiki/Software_design_pattern#Classification_and_list
+

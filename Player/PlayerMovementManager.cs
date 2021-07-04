@@ -1,10 +1,8 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(BoxCollider2D), typeof(Rigidbody2D), typeof(InputHandler))]
-public class Player : MonoBehaviour
+public class PlayerMovementManager : MonoBehaviour
 {
     [Tooltip("Force applied downward when in the air")]
     public float GravityDownForce = 80f;
@@ -12,33 +10,30 @@ public class Player : MonoBehaviour
     [Tooltip("Distance from the bottom of the character to raycast for the ground")]
     public float GroundCheckDistance = 0.05f;
 
-    [Tooltip("Ground planes steeper than this value (in degrees) will instead be considered as obstructions")]
+    [Tooltip("The player will slide off ground planes steeper than this value (degrees)")]
     public float MaximumGroundAngle = 45f;
 
     [Tooltip("Horizontal speed")]
-    public float Speed = 5f;
+    public float GroundSpeed = 7f;
 
     [Tooltip("Air strafe speed")]
-    public float AirStrafeSpeed = 3f;
+    public float AirStrafeSpeed = 7f;
 
     [Tooltip("Air strafe lerp speed")]
-    public float AirStrafeInfluenceSpeed = 3f;
+    public float AirStrafeInfluenceSpeed = 7f;
 
     [Tooltip("Force applied upwards when jumping")]
-    public float JumpForce = 6f;
+    public float JumpForce = 24f;
 
     [Tooltip("Maximum number of times the player can jump without landing")]
     public int MaxJumps = 2;
-
-    [Tooltip("The empty child game object representing the point of contact between the player and the ground")]
-    public Transform Foot;
 
     public Vector2 CandidateVelocity { get; set; }
     public bool IsGrounded { get; private set; }
 
     BoxCollider2D m_CollisionCollider;
     Rigidbody2D m_RB2D;
-    InputHandler m_InputHandler;
+    PlayerInputManager m_PlayerInputManager;
 
     Vector2 m_GroundNormal;
     Collider2D m_GroundCollider;
@@ -47,15 +42,13 @@ public class Player : MonoBehaviour
     Vector2 m_CandidatePosition;
     int m_JumpCounter = 0;
 
-    // Start is called before the first frame update
     void Start()
     {
         m_CollisionCollider = GetComponent<BoxCollider2D>();
         m_RB2D = GetComponent<Rigidbody2D>();
-        m_InputHandler = GetComponent<InputHandler>();
+        m_PlayerInputManager = GetComponent<PlayerInputManager>();
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         m_CandidatePosition = m_RB2D.position;
@@ -121,20 +114,20 @@ public class Player : MonoBehaviour
     // Sets CandidateVelocity based on input and grounding
     void ProposeVelocity()
     {
-        float worldspaceMoveInput = m_InputHandler.GetMoveInput();
+        float worldspaceMoveInput = m_PlayerInputManager.GetMoveInput();
 
         if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
             // Grounded movement
-            float inputMagnitude = worldspaceMoveInput * Speed;
+            float inputMagnitude = worldspaceMoveInput * GroundSpeed;
             CandidateVelocity = inputMagnitude * VectorAlongSurface(m_GroundNormal);
 
             // Grounded jump
-            if (m_InputHandler.RetrieveJumpInputDown()) {
+            if (m_PlayerInputManager.GetInputDown("jump", false)) {
                 Jump();
             }
         } else {
             // Air jump
-            if (m_InputHandler.RetrieveJumpInputDown() && m_JumpCounter < MaxJumps) {
+            if (m_PlayerInputManager.GetInputDown("jump", false) && m_JumpCounter < MaxJumps) {
                 Jump();
             } else {
                 if (IsGrounded && IsTooSteep(m_GroundNormal)) {
