@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(BoxCollider2D)), RequireComponent(typeof(Rigidbody2D)), RequireComponent(typeof(PlayerInputManager)), RequireComponent(typeof(PlayerStatusManager))]
 public class PlayerMovementManager : MonoBehaviour
 {
     [Tooltip("Force applied downward when in the air")]
@@ -34,6 +35,7 @@ public class PlayerMovementManager : MonoBehaviour
     BoxCollider2D m_CollisionCollider;
     Rigidbody2D m_RB2D;
     PlayerInputManager m_PlayerInputManager;
+    PlayerStatusManager m_PlayerStatusManager;
 
     Vector2 m_GroundNormal;
     Collider2D m_GroundCollider;
@@ -47,10 +49,20 @@ public class PlayerMovementManager : MonoBehaviour
         m_CollisionCollider = GetComponent<BoxCollider2D>();
         m_RB2D = GetComponent<Rigidbody2D>();
         m_PlayerInputManager = GetComponent<PlayerInputManager>();
+        m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
     }
 
     void FixedUpdate()
     {
+        if (m_PlayerStatusManager.HasStatus(Status.Stunned)) {
+            return;
+        }
+
+        if (m_PlayerStatusManager.HasStatus(Status.Suspended)) {
+            CandidateVelocity = Vector2.zero;
+            return;
+        }
+    
         m_CandidatePosition = m_RB2D.position;
 
         GroundCheck();
@@ -114,7 +126,7 @@ public class PlayerMovementManager : MonoBehaviour
     // Sets CandidateVelocity based on input and grounding
     void ProposeVelocity()
     {
-        float worldspaceMoveInput = m_PlayerInputManager.GetMoveInput();
+        float worldspaceMoveInput = GetMoveInput();
 
         if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
             // Grounded movement
@@ -122,12 +134,12 @@ public class PlayerMovementManager : MonoBehaviour
             CandidateVelocity = inputMagnitude * VectorAlongSurface(m_GroundNormal);
 
             // Grounded jump
-            if (m_PlayerInputManager.GetInputDown("jump", false)) {
+            if (GetJumpInput()) {
                 Jump();
             }
         } else {
             // Air jump
-            if (m_PlayerInputManager.GetInputDown("jump", false) && m_JumpCounter < MaxJumps) {
+            if (GetJumpInput() && m_JumpCounter < MaxJumps) {
                 Jump();
             } else {
                 if (IsGrounded && IsTooSteep(m_GroundNormal)) {
@@ -137,6 +149,8 @@ public class PlayerMovementManager : MonoBehaviour
                 } else {
                     // Air strafing
                     float inputMagnitude = worldspaceMoveInput * AirStrafeSpeed;
+
+                    // Apply air strafing and gravity
                     CandidateVelocity = new Vector2(
                         Mathf.Lerp(CandidateVelocity.x, inputMagnitude, AirStrafeInfluenceSpeed * Time.fixedDeltaTime),
                         CandidateVelocity.y - GravityDownForce * Time.fixedDeltaTime
@@ -144,6 +158,32 @@ public class PlayerMovementManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    float GetMoveInput()
+    {
+        if (
+            m_PlayerStatusManager.HasStatus(Status.Rooted) ||
+            m_PlayerStatusManager.HasStatus(Status.Stunned) ||
+            m_PlayerStatusManager.HasStatus(Status.Suspended)
+        ) {
+            return 0.0f;
+        }
+
+        return m_PlayerInputManager.GetMoveInput();
+    }
+
+    bool GetJumpInput()
+    {
+        if (
+            m_PlayerStatusManager.HasStatus(Status.Rooted) ||
+            m_PlayerStatusManager.HasStatus(Status.Stunned) ||
+            m_PlayerStatusManager.HasStatus(Status.Suspended)
+        ) {
+            return false;
+        }
+
+        return m_PlayerInputManager.GetInputDown("jump", false);
     }
 
     // Checks for obstructions and sets m_CandidatePosition and CandidateVelocity appropriately if an obstruction is detected

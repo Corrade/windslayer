@@ -1,13 +1,20 @@
+todo
+    status inflicting (timed)
+    health inflicting; damage formula (implement blocking later)
+    basic ui representing status and health/mana
 
-one-way platforms (when player velocity is positive, set one-way platform collision mask bit off
-falling down platforms (s)
-dash
-basic attack
-strong attack
-guard (block basic attack)
-skills
-hp and mana
-respawning
+    ability system
+    light attack
+    heavy attack
+    guard
+    dash
+    hold-to-jump
+    actual platforms
+    duck/fall platform / look at movement code again
+
+
+
+
 
 server browser
 connecting to server
@@ -28,21 +35,29 @@ menus
         map
         social (friends, guild)
 
-https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
-https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
-https://en.wikipedia.org/wiki/Netcode
-https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
+ability manager
+settings manager
+record manager (name, class, rank, pvp stats)
+social manager (friends, guild)
+item manager (equipment, inventory)
+quest manager
+map manager (position in map, seen areas, etc.)
 
-https://www.gabrielgambetta.com/client-server-game-architecture.html
+networking
+    https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
+    https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
+    https://en.wikipedia.org/wiki/Netcode
+    https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
 
-"Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
+    https://www.gabrielgambetta.com/client-server-game-architecture.html
 
-client side prediction uses the same code that the server uses for movement checking/logic
+    "Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
+
+    client side prediction uses the same code that the server uses for movement checking/logic
 
 
-always send inputs, not position
-not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
-
+    always send inputs, not position
+    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
 
 
 keys
@@ -68,213 +83,51 @@ keys
 
 
 
+prefer this to defining hitbox subclasses to centralise the palatably low amount of code associated with a single ability
 
-class: ability
-    ability.add(effect);
-    collider(collidable, 
+gotta have an easy way to adjust stats and apply statuses on a timer
+removing these statuses shouldn't be the responsibility of the ability, but rather of the inflicted person or of the debuff/buff itself
 
-class: effect
-    buff
-    local attack (spawn hitbox static relative to player)
-    world attack (spawn hitbox static relative to world)
-    interpolated attack (spawn smoothly-interpolated hitbox, e.g. horizontal projectile)
-    complex moving attack (spawn a pre-defined sequences of different hitboxes)
-    lingering attack (spawn hitbox that persists after the move recovers)
-    player movement/lack thereof during active
+dot (tick speed, damage per tick)
+apply damage (damage type)
 
-    start active, stop active
-
-ability, virtual
-    startup frame count
-    recovery frame count
-    on startup interrupt
-    on recovery interrupt
-
-attack : ability, virtual
-    active frame count
-    hit stun
-    block stun
-    attacker stun
-    damage
-    heal
-
-localAttack : attack
-// the created hitbox is attached to the player and moves relative to it
-// no notion of an active frame
-// melee
-
-worldAttack : attack
-// the created hitbox is attached to the world and moves relative to it
-// no notion of active frames - 
-// if the player is interrupted after the hitbox has been created, the hitbox persists
-// projectiles, active summons
-
-movement : ability
-    active frame count
-
-buff : ability
-    status
-
-
-
-
-movement hooks
-    cancel velocity
-    restrict input
-    stun: cancel all velocity, restrict all input
-
-actually attcaker stun may only apply to basic/strong attacks, and attacker stun & hit stun actually prevent gravity, not just input movement
+any attack : ability
+    colliders
+    ability script
+        public collider(s)
+        private hitbox class(es)
+            each one is passed in a collider, curve, speed, maxduration, pierce, Hit, isTarget, parent, etc.
+        in OnActiveBegin(), those hitboxes are instantiated
+        definitionsof Hit and isTarget (usually only one of each)
 
 during startup and recovery, the player may not provide any movement or ability input, but they're still affected by their existing momentum (sliding and gravity)
 
 
 
-ability manager
-settings manager
-record manager (name, class, rank, pvp stats)
-social manager (friends, guild)
-item manager (equipment, inventory)
-quest manager
-map manager (position in map, seen areas, etc.)
 
 
 
-hold jump to jump further? also the ws jump is super high
+
+
+
+hold jump to jump further. note that the windslayer max jump height is super high
+
+
+attack used: startup -> active -> recovery (or attacker stun)
+enemy hit -> block stun or hit stun
+block stun < attacker stun < hit stun
+    attacker stun: if you hit a strong attack in the air that's not blocked, you are stunned, but of course for a shorter time than your target's hit stun. accordingly, hit stun is a lot longer than usual. this mechanic slows down combat.
+
+if you're hit while in attacker stun (and possibly other stuns), you immediately go into the hit stun / block stun (well, you wouldn't be blocking if you're in attacker stun). this may actually be shorter than your current stun.
 
 https://www.youtube.com/watch?v=HOZqk6jDPIc
-actually attacker stun is only in the air. strong attack on ground is super slow, strong attack on air is super fast but has attacker stun.
+    grounded strong: slow
+    air strong: fast and has attacker stun
 
-
-startup -> active -?> attacker stun -> recovery
-enemy -> block stun or hit stun
-block stun < attacker stun < hit stun
-    windslayer: attacker stun. if the attacker connects a hit (not blocked), they're also stunned, but for a shorter time than hit stun. accordingly, hit stun is a lot longer than usual.
-    windslayer has very long frame times in general. this makes it relatively slow-paced and manageable, which is fun.
+    attacker stun prevents ALL movement
+    hit stun prevents ALL movement, at least for strong attacks
 
 air strong attack (can flip directions) interrupt if hit ground
-
-
-
-        public UnityAction<float, GameObject> OnDamaged;
-        public UnityAction<float> OnHealed;
-        public UnityAction OnDie;
-        OnDie?.Invoke();
-    
-        // subscribe as: m_Health.OnDie += OnDie;
-
-
-// state machine perhaps excessive since startup and recovery are trivial and the active frame / middle is what's really important?    
-// gotta think if this will apply to all abilities i wanna make
-
-Ability.cs // state machine where all the order of state progression is defined from the start, enabling an array structure
-    public State[] m_States;
-    public int m_CurrentStateIdx;
-
-    public void AddState() {
-        m_States.append(startingState);
-    }
-
-    public void StartAbility() {
-        startingState.Enter();
-    }
-
-    public void RunState() {
-        m_States[m_CurrentStateIdx].Run();
-    }
-
-    // have an udpate here that clales RunState() itself after the ability has been started? or have an outside etntiy call RunState
-
-    public void ChangeState(State newState) {
-        m_States[m_CurrentStateIdx].Exit();
-        m_CurrentStateIdx++;
-        // if end
-        m_States[m_CurrentStateIdx].Enter();
-    }
-
-// transitions call stateMachine.ChangeState(whatever instance);
-AbilityState (State)
-    State m_StateMachine; // passed in constructor
-    int m_FramesRemaining;
-
-    AbilityState(State stateMachine, int frameDuration) {
-        m_StateMachine = stateMachine;
-        m_FramesRemaining = frameDuration;
-    }
-
-    public virtual void Enter();
-    
-    public virtual void Run();
-    // m_FramesRemaining--. if == 0, m_StateMachine.ChangeState(?)
-    
-    public virtual void Exit();
-
-Hitbox class
-    Transform m_Attacker;
-    func m_HitCallback;
-    ? targeting; // attacker, teammates, enemies, etc.
-
-    Curve m_Curve;
-    Vector2 m_UnitialPos;
-    float m_TimeElapsed;
-    float m_MaxDuration;
-
-    Hitbox() {
-        assign attacker
-        assign parent
-        assign onHitCallback
-        assign initialPos
-    }
-
-    FixedUpdate() {
-        check for collisions obeying the specified targeting
-        suppose you collide with player x { // (or foreach player collided with)
-            hit(x)
-            hitCallback(x) // attacker stun
-        }
-
-        position = parent.position + curve(timeElapsed);
-        timeElapsed += Time.FixedDeltaTime;
-        if (timeElapsed >= maxDuration) {
-            destroy self
-        }
-    }
-
-    Hit(Transform player) {
-        // both will be modified by the victim if they're blocking. call a different function to bypass blocking
-        player.takeDamage(dmg, hit stun)
-        // destroy unless pierce or aoe
-    }
-
-    spawn hitbox that moves given a 
-        & an optional speed modifier s*t
-
-    // and how to handle hitboxes that change size?
-
-
-GameManager.cs
-    public StateMachine movementSM;
-    public StandingState standing;
-    public DuckingState ducking;
-    public JumpingState jumping;
-
-    private void Start() {
-        movementSM = new StateMachine();
-
-        standing = new StandingState(this, movementSM);
-        ducking = new DuckingState(this, movementSM);
-        jumping = new JumpingState(this, movementSM);
-
-        movementSM.Initialize(standing);
-    }
-
-    private void Update() {
-        movementSM.CurrentState.HandleInput();
-        movementSM.CurrentState.LogicUpdate();
-    }
-
-    private void FixedUpdate() {
-        movementSM.CurrentState.PhysicsUpdate();
-    }
 
 
 

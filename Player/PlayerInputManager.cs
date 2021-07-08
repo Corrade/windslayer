@@ -40,16 +40,20 @@ public class PlayerInputManager : MonoBehaviour
     void Start()
     {
         m_Binds = new Dictionary<string, Key>();
-        m_Binds.Add("left", new Key(KeyCode.A, false));
-        m_Binds.Add("right", new Key(KeyCode.D, false));
+        m_Binds.Add("left", new Key(KeyCode.LeftArrow, false));
+        m_Binds.Add("right", new Key(KeyCode.RightArrow, false));
         m_Binds.Add("jump", new Key(KeyCode.Space, true));
+        m_Binds.Add("crouch", new Key(KeyCode.DownArrow, true));
+        m_Binds.Add("light_attack", new Key(KeyCode.S, false));
+        m_Binds.Add("strong_attack", new Key(KeyCode.D, false));
+        m_Binds.Add("block", new Key(KeyCode.A, false));
     }
 
     // Problem: normally, you can't reliably call GetKeyDown() or GetKeyUp() from FixedUpdate() since those events may fire off between fixed updates.
     // Solution: we use m_IsDown and m_IsUp. Each of these are set to be true in Update() if their corresponding events have occurred, but they are only set to be false at the end of FixedUpdate(). This way, anybody calling these functions from FixedUpdate() can catch the value. We ensure this script runs at the end of FixedUpdate() by setting this script's execution order to last.
     void Update()
     {
-        foreach(KeyValuePair<string, Key> entry in m_Binds) {
+        foreach (KeyValuePair<string, Key> entry in m_Binds) {
             if (entry.Value.IsCheckingDownUpFromFixedUpdate) {
                 if (entry.Value.GetKeyDown(true)) {
                     entry.Value.IsDown = true;
@@ -64,7 +68,7 @@ public class PlayerInputManager : MonoBehaviour
 
     void FixedUpdate()
     {
-        foreach(KeyValuePair<string, Key> entry in m_Binds) {
+        foreach (KeyValuePair<string, Key> entry in m_Binds) {
             if (entry.Value.IsCheckingDownUpFromFixedUpdate) {
                 entry.Value.IsDown = false;
                 entry.Value.IsUp = false;

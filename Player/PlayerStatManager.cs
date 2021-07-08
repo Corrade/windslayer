@@ -1,7 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class PlayerStatManager : MonoBehaviour
 {
@@ -12,7 +12,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Level = value;
-            OnLevelChange.Invoke();
+            OnLevelChange?.Invoke(this, EventArgs.Empty);
         }
     }
     public float Exp {
@@ -21,7 +21,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Exp = value;
-            OnExpChange.Invoke();
+            OnExpChange?.Invoke(this, EventArgs.Empty);
         }
     }
     public int Gold {
@@ -30,7 +30,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Gold = value;
-            OnGoldChange.Invoke();
+            OnGoldChange?.Invoke(this, EventArgs.Empty);
         }
     }
     public int Wsp {
@@ -39,7 +39,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Wsp = value;
-            OnWspChange.Invoke();
+            OnWspChange?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -50,7 +50,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Str = value;
-            OnStrChange.Invoke();
+            OnStrChange?.Invoke(this, EventArgs.Empty);
         }
     }
     public int Dex {
@@ -59,7 +59,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Dex = value;
-            OnDexChange.Invoke();
+            OnDexChange?.Invoke(this, EventArgs.Empty);
         }
     }
     public int Int {
@@ -68,7 +68,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Int = value;
-            OnIntChange.Invoke();
+            OnIntChange?.Invoke(this, EventArgs.Empty);
         }
     }
     public int Spr {
@@ -77,7 +77,7 @@ public class PlayerStatManager : MonoBehaviour
         }
         set {
             m_Spr = value;
-            OnSprChange.Invoke();
+            OnSprChange?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -90,22 +90,22 @@ public class PlayerStatManager : MonoBehaviour
     public int MagDef { get; private set; }
 
     // Events
-    public UnityEvent OnLevelChange;
-    public UnityEvent OnExpChange;
-    public UnityEvent OnGoldChange;
-    public UnityEvent OnWspChange;
+    public event EventHandler OnLevelChange;
+    public event EventHandler OnExpChange;
+    public event EventHandler OnGoldChange;
+    public event EventHandler OnWspChange;
 
-    public UnityEvent OnStrChange;
-    public UnityEvent OnDexChange;
-    public UnityEvent OnIntChange;
-    public UnityEvent OnSprChange;
+    public event EventHandler OnStrChange;
+    public event EventHandler OnDexChange;
+    public event EventHandler OnIntChange;
+    public event EventHandler OnSprChange;
 
-    public UnityEvent OnMaxHealthChange;
-    public UnityEvent OnMaxManaChange;
-    public UnityEvent OnPhyPowChange;
-    public UnityEvent OnPhyDefChange;
-    public UnityEvent OnMagPowChange;
-    public UnityEvent OnMagDefChange;
+    public event EventHandler OnMaxHealthChange;
+    public event EventHandler OnMaxManaChange;
+    public event EventHandler OnPhyPowChange;
+    public event EventHandler OnPhyDefChange;
+    public event EventHandler OnMagPowChange;
+    public event EventHandler OnMagDefChange;
 
     // Backing fields
     int m_Level;
@@ -131,19 +131,16 @@ public class PlayerStatManager : MonoBehaviour
         Spr = 10;
 
         // Hook up dynamic stats to the events of stats they're based on
-        OnLevelChange.AddListener(SetMaxHealth);
-        OnSprChange.AddListener(SetMaxHealth);
+        OnLevelChange += (object sender, EventArgs e) => SetMaxHealth();
+        OnSprChange += (object sender, EventArgs e) => SetMaxHealth();
 
-        OnLevelChange.AddListener(SetMaxMana);
-        OnIntChange.AddListener(SetMaxMana);
+        OnLevelChange += (object sender, EventArgs e) => SetMaxMana();
+        OnIntChange += (object sender, EventArgs e) => SetMaxMana();
 
-        OnStrChange.AddListener(SetPhyPow);
-
-        OnSprChange.AddListener(SetPhyDef);
-
-        OnIntChange.AddListener(SetMagPow);
-
-        OnDexChange.AddListener(SetMagDef);
+        OnStrChange += (object sender, EventArgs e) => SetPhyPow();
+        OnSprChange += (object sender, EventArgs e) => SetPhyDef();
+        OnIntChange += (object sender, EventArgs e) => SetMagPow();
+        OnDexChange += (object sender, EventArgs e) => SetMagDef();
 
         // Initialise dynamic stats
         SetMaxHealth();
@@ -157,36 +154,36 @@ public class PlayerStatManager : MonoBehaviour
     void SetMaxHealth()
     {
         MaxHealth = 100 + 5*Level + 2*Spr;
-        OnMaxHealthChange.Invoke();
+        OnMaxHealthChange?.Invoke(this, EventArgs.Empty);
     }
 
     void SetMaxMana()
     {
         MaxMana = 100 + 5*Level + 2*Int;
-        OnMaxManaChange.Invoke();
+        OnMaxManaChange?.Invoke(this, EventArgs.Empty);
     }
 
     void SetPhyPow()
     {
         PhyPow = 3*Str;
-        OnPhyPowChange.Invoke();
+        OnPhyPowChange?.Invoke(this, EventArgs.Empty);
     }
 
     void SetPhyDef()
     {
         PhyDef = 3*Spr;
-        OnPhyDefChange.Invoke();
+        OnPhyDefChange?.Invoke(this, EventArgs.Empty);
     }
 
     void SetMagPow()
     {
         MagPow = 3*Int;
-        OnMagPowChange.Invoke();
+        OnMagPowChange?.Invoke(this, EventArgs.Empty);
     }
 
     void SetMagDef()
     {
         MagDef = 3*Dex; // Makes no sense
-        OnMagDefChange.Invoke();
+        OnMagDefChange?.Invoke(this, EventArgs.Empty);
     }
 }

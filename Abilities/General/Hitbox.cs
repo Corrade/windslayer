@@ -1,52 +1,72 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
+[RequireComponent(typeof(Collider2D))]
 public class Hitbox : MonoBehaviour
 {
-    /*
-    Collider2D col;
-    Transform m_Attacker;
-    Transform m_Parent;
-    Action<Transform> m_HitCallback; // Action<EntityHit>
-    // ? targeting; // attacker, teammates, enemies, etc.
+    // two approaches: inherit from this and override IsTarget and Hit. OR always use this and pass in IsTarget and Hit as lambdas.
 
-    Curve m_Curve;
-    float m_MaxDuration;
+    // public UnityEvent<GameObject> OnHitConfirmed; // Called once if at least one enemy is hit
+    public Curve Path;
+    public float Speed;
+    public float MaxDuration;
+    public int MaxPierce;
+
+    Collider2D m_Hitbox;
+    // GameObject m_Attacker;
+    GameObject m_Parent;
+    Func<GameObject, bool> m_IsTarget; // f(collided game object) -> whether or not a hit should be registers, e.g. a team check
     float m_TimeElapsed;
 
-    Hitbox(Transform attacker, Action<Transform> hitCallback, Curve curve, float maxDuration, Transform parent, float speed) {
-        m_Attacker = attacker;
-        m_Parent = parent;
-        m_HitCallback = hitCallback;
-        m_Curve = curve;
-        m_MaxDuration = maxDuration;
-        // m_Speed = speed;
+    void Start()
+    {
+        m_Hitbox = GetComponent<Collider2D>();
     }
 
-    FixedUpdate() {
-        check for collisions obeying the specified targeting
-        suppose you collide with player x { // (or foreach player collided with)
-            Hit(x);
-            m_HitCallback(x); // possible attacker stun
+    void Initialise()
+    {
+        m_TimeElapsed = 0f;
+        // set m_Attacker
+        // set m_Parent
+        // set m_IsTarget
+    }
+
+    void FixedUpdate()
+    {
+        RaycastHit2D[] results = new RaycastHit2D[]{};
+        int targetsHit = 0;
+
+        m_Hitbox.Cast(Vector2.zero, results, 0f, true);
+
+        foreach (RaycastHit2D hit in results) {
+            if (hit.collider == null) { // || !m_IsTarget(hit)
+                continue;
+            }
+
+            targetsHit++;
+            if (targetsHit > MaxPierce) {
+                break;
+            }
+
+            // Hit(x);
         }
 
-        position = parent.position + speed * curve(timeElapsed);
-        timeElapsed += Time.FixedDeltaTime;
-        if (timeElapsed >= maxDuration) {
-            destroy self
+        if (targetsHit > 0) {
+            // OnHitConfirmed?.Invoke(this, EventArgs.Empty);
+            Destroy(gameObject);
+        }
+
+        // transform.position = m_Parent.transform.position + Speed * Path(m_TimeElapsed);
+
+        m_TimeElapsed += Time.fixedDeltaTime;
+        if (m_TimeElapsed >= MaxDuration) {
+            Destroy(gameObject);
         }
     }
 
-    Hit(Transform player) {
-        // both will be modified by the victim if they're blocking. call a different function to bypass blocking
-        player.TakeDamage(dmg, dmg type, hit stun)
-        // destroy unless pierce or aoe
-    }
-
-    spawn hitbox that moves given a 
-        & an optional speed modifier s*t
-
-    // and how to handle hitboxes that change size?
-    */
+    // Consider: damage, hit stun, status effects, healing
+    protected virtual void Hit(GameObject player) {}
 }
