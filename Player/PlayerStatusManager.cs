@@ -6,8 +6,6 @@ using UnityEngine;
 [Flags]
 public enum Status
 {
-    None,
-
     // A rooted player cannot influence their own movement from regular keypresses nor abilities, but is still subject to gravity and others' forces
     Rooted,
 
@@ -79,7 +77,7 @@ public class PlayerStatusManager : MonoBehaviour
             OnEnd?.Invoke(this, EventArgs.Empty);
         }
 
-        public bool HasStatus()
+        public bool Has()
         {
             return m_FramesRemaining > 0;
         }
@@ -120,9 +118,31 @@ public class PlayerStatusManager : MonoBehaviour
         m_Statuses[status].ClearStatus();
     }
 
-    public bool HasStatus(Status status)
+    public bool Has(Status status)
     {
-        return m_Statuses[status].HasStatus();
+        return m_Statuses[status].Has();
+    }
+
+    public bool HasAny(params Status[] list)
+    {
+        foreach (Status status in list) {
+            if (m_Statuses[status].Has()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool HasAll(params Status[] list)
+    {
+        foreach (Status status in list) {
+            if (!m_Statuses[status].Has()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public int GetRemainingFrames(Status status)

@@ -15,7 +15,8 @@ public class PlayerAbilityManager : MonoBehaviour
     void Update()
     {
         if (m_PlayerInputManager.GetInputDown("light_attack", true)) {
-            StartCoroutine(Sync.RunPerFrame(60, (int x) => { Debug.Log(x); }));
+            ;
+            // StartCoroutine(Sync.RunPerFrame(60, (int x) => { Debug.Log(x); }));
         }
     }
 }

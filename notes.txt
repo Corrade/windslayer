@@ -1,16 +1,13 @@
 todo
-    status inflicting (timed)
-    health inflicting; damage formula (implement blocking later)
-    basic ui representing status and health/mana
+    actually fix movement
+    camera
 
     ability system
     light attack
     heavy attack
-    guard
+    guard and blocking
     dash
-    hold-to-jump
-    actual platforms
-    duck/fall platform / look at movement code again
+    hook double jump into ability system
 
 
 

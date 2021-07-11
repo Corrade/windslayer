@@ -43,7 +43,7 @@ public class PlayerInputManager : MonoBehaviour
         m_Binds.Add("left", new Key(KeyCode.LeftArrow, false));
         m_Binds.Add("right", new Key(KeyCode.RightArrow, false));
         m_Binds.Add("jump", new Key(KeyCode.Space, true));
-        m_Binds.Add("crouch", new Key(KeyCode.DownArrow, true));
+        m_Binds.Add("drop", new Key(KeyCode.DownArrow, true));
         m_Binds.Add("light_attack", new Key(KeyCode.S, false));
         m_Binds.Add("strong_attack", new Key(KeyCode.D, false));
         m_Binds.Add("block", new Key(KeyCode.A, false));
@@ -59,7 +59,7 @@ public class PlayerInputManager : MonoBehaviour
                     entry.Value.IsDown = true;
                 }
 
-                if (entry.Value.GetKeyDown(true)) {
+                if (entry.Value.GetKeyUp(true)) {
                     entry.Value.IsUp = true;
                 }
             }
