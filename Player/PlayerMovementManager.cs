@@ -106,6 +106,11 @@ public class PlayerMovementManager : MonoBehaviour
             return;
         }
 
+        // Reset grounding variables
+        IsGrounded = false;
+        m_GroundNormal = Vector2.up;
+        m_GroundCollider = null;
+
         // Cast the collision collider down by GroundCheckDistance units
         foreach (RaycastHit2D hit in Physics2D.BoxCastAll(
             m_CandidatePosition,
@@ -115,8 +120,7 @@ public class PlayerMovementManager : MonoBehaviour
             GroundCheckDistance,
             LayerMask.GetMask("Obstruction", "Platform")
         )) {
-            // Ignore if nothing was obtained, if the ground is too steep or if the collider is a platform that was recently dropped from
-            if (hit.collider == null || IsTooSteep(hit.normal) || m_PlatformsRecentlyDropped.Contains(hit.collider)) {
+            if (hit.collider == null || m_PlatformsRecentlyDropped.Contains(hit.collider)) {
                 continue;
             }
 
@@ -126,19 +130,16 @@ public class PlayerMovementManager : MonoBehaviour
             IsGrounded = true;
             m_GroundNormal = hit.normal;
             m_GroundCollider = hit.collider;
-            m_JumpCounter = 0;
-
-            // Snap to ground
             m_CandidatePosition = hit.centroid;
 
-            // Take the first ground
-            return;
-        }
+            // Prevent scaling steep walls with jump resets
+            if (!IsTooSteep(hit.normal)) {
+                m_JumpCounter = 0;
 
-        // Debugger.Log("No ground detected");
-        IsGrounded = false;
-        m_GroundNormal = Vector2.up;
-        m_GroundCollider = null;
+                // Prioritise picking a flat ground so that if the player is at an intersection between flat and steep grounds, they will not be grounded on the steeper surface and forced to slide into the flat ground indefinitely
+                return;
+            }
+        }
     }
 
     // Temporarily ignore ground checks for the current platform if the player is inputting to drop
@@ -161,8 +162,8 @@ public class PlayerMovementManager : MonoBehaviour
 
         if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
             // Grounded movement
-            float inputMagnitude = worldspaceMoveInput * GroundSpeed;
-            CandidateVelocity = inputMagnitude * VectorAlongSurface(m_GroundNormal);
+            float input = worldspaceMoveInput * GroundSpeed;
+            CandidateVelocity = input * VectorAlongSurface(m_GroundNormal);
 
             // Grounded jump
             if (GetJumpInput()) {
@@ -175,15 +176,15 @@ public class PlayerMovementManager : MonoBehaviour
             } else {
                 if (IsGrounded && IsTooSteep(m_GroundNormal)) {
                     // Sliding down a steep surface
-                    // Debug.Log("Sliding down wall");
-                    CandidateVelocity -= VectorAlongSurface(m_GroundNormal) * GravityDownForce * Time.fixedDeltaTime;
+                    CandidateVelocity += VectorDownSurface(m_GroundNormal) * GravityDownForce * Time.fixedDeltaTime;
+                    Debug.Log("Sliding");
                 } else {
                     // Air strafing
-                    float inputMagnitude = worldspaceMoveInput * AirStrafeSpeed;
+                    float input = worldspaceMoveInput * AirStrafeSpeed;
 
                     // Apply air strafing
                     CandidateVelocity = new Vector2(
-                        Mathf.Lerp(CandidateVelocity.x, inputMagnitude, AirStrafeInfluenceSpeed * Time.fixedDeltaTime),
+                        Mathf.Lerp(CandidateVelocity.x, input, AirStrafeInfluenceSpeed * Time.fixedDeltaTime),
                         CandidateVelocity.y
                     );
 
@@ -278,10 +279,20 @@ public class PlayerMovementManager : MonoBehaviour
             0f,
             CandidateVelocity.normalized,
             CandidateVelocity.magnitude * Time.fixedDeltaTime,
-            LayerMask.GetMask("Obstruction")
+            LayerMask.GetMask("Obstruction", "Platform")
         )) {
             // Ignore if nothing was collided with
             if (hit.collider == null) {
+                continue;
+            }
+
+            // Don't bump into platforms when rising
+            if (IsRising() && hit.collider.gameObject.layer == LayerMask.NameToLayer("Platform")) {
+                continue;
+            }
+
+            // Ignore if the collider is a platform that was recently dropped from
+            if (m_PlatformsRecentlyDropped.Contains(hit.collider)) {
                 continue;
             }
 
@@ -290,26 +301,37 @@ public class PlayerMovementManager : MonoBehaviour
                 continue;
             }
 
-            // Debugger.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
+            Debugger.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
+            // Debugger.DrawRay(hit.point, VectorAlongSurface(hit.normal), Color.blue, 1f);
 
             // Snap to the obstruction
             m_CandidatePosition = hit.centroid;
 
             // Subtract the distance that was moved by snapping
-            float remainingMagnitude = Mathf.Sign(CandidateVelocity.magnitude) * (Mathf.Abs(CandidateVelocity.magnitude) - hit.distance);
+            float remainingMagnitude = (CandidateVelocity.x < 0 ? -1 : 1) * Mathf.Abs(Mathf.Abs(CandidateVelocity.magnitude) - hit.distance);
 
             if (IsGrounded) {
                 if (IsTooSteep(hit.normal)) {
-                    // Moving from ground -> steep ground: stop motion, don't allow players to walk onto steep surfaces
-                    CandidateVelocity = Vector2.zero;
+                    if (!IsTooSteep(m_GroundNormal)) {
+                        // Moving from regular ground -> steep ground: stop motion, don't allow players to walk onto steep surfaces
+                        CandidateVelocity = Vector2.zero;
+                    } else {
+                        // Moving from steep ground -> regular ground: stop motion
+                        CandidateVelocity = Vector2.zero;
+                    }
                 } else {
-                    // Moving from ground -> regular ground: reorientate movement along the next ground
-                    CandidateVelocity = remainingMagnitude * VectorAlongSurface(hit.normal);
+                    if (!IsTooSteep(m_GroundNormal)) {
+                        // Moving from regular ground -> regular ground: reorientate movement along the next ground
+                        CandidateVelocity = remainingMagnitude * VectorAlongSurface(hit.normal);
+                    } else {
+                        // Moving from steep ground -> regular ground: stop motion
+                        CandidateVelocity = Vector2.zero;
+                    }
                 }
             } else {
                 if (IsTooSteep(hit.normal)) {
-                    // Moving from air -> steep ground: reorientate movement to slide/fall down the ground
-                    CandidateVelocity = remainingMagnitude * -VectorAlongSurface(hit.normal);
+                    // Moving from air -> steep ground: stop motion
+                    CandidateVelocity = Vector2.zero;
                 } else {
                     // Moving from air -> regular ground: stop motion, player can take over
                     CandidateVelocity = Vector2.zero;
@@ -325,13 +347,19 @@ public class PlayerMovementManager : MonoBehaviour
         return Vector2.Dot(-normal, direction) > 0.01f;
     }
 
-    // Returns the vector pointing up the surface with the given normal
+    // Returns the vector going right along the surface with the given normal
     Vector2 VectorAlongSurface(Vector2 normal)
     {
-        if (normal.x <= 0) { // Left-facing
-            return PerpendicularClockwise(normal).normalized;
-        } else {
+        return PerpendicularClockwise(normal).normalized;
+    }
+
+    // Returns the vector going down along the surface with the given normal
+    Vector2 VectorDownSurface(Vector2 normal)
+    {
+        if (normal.x <= 0) { // Surface is like /
             return PerpendicularAntiClockwise(normal).normalized;
+        } else { // Surface is like \
+            return PerpendicularClockwise(normal).normalized;
         }
     }
 
