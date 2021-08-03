@@ -45,6 +45,7 @@ public class PlayerMovementManager : MonoBehaviour
     Rigidbody2D m_RB2D;
     PlayerInputManager m_PlayerInputManager;
     PlayerStatusManager m_PlayerStatusManager;
+    SpriteRenderer m_SpriteRenderer;
 
     Vector2 m_GroundNormal;
     Collider2D m_GroundCollider;
@@ -56,6 +57,7 @@ public class PlayerMovementManager : MonoBehaviour
     int m_JumpCounter;
     float m_JumpTime;
     bool m_Jumping;
+    float m_PreviousMoveInput;
 
     void Start()
     {
@@ -63,6 +65,7 @@ public class PlayerMovementManager : MonoBehaviour
         m_RB2D = GetComponent<Rigidbody2D>();
         m_PlayerInputManager = GetComponent<PlayerInputManager>();
         m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
+        m_SpriteRenderer = GetComponent<SpriteRenderer>();
         m_JumpCounter = 0;
         m_JumpTime = 0f;
         m_Jumping = false;
@@ -71,12 +74,7 @@ public class PlayerMovementManager : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (m_PlayerStatusManager.Has(Status.Stunned)) {
-            return;
-        }
-
-        if (m_PlayerStatusManager.Has(Status.Suspended)) {
-            CandidateVelocity = Vector2.zero;
+        if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
             return;
         }
     
@@ -94,6 +92,12 @@ public class PlayerMovementManager : MonoBehaviour
             // Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition) + ", CandidateVelocity = " + Debugger.Vector2Full(CandidateVelocity));
             // Debugger.DrawRay(m_RB2D.position, CandidateVelocity * Time.fixedDeltaTime, Color.blue, 1f);
             m_RB2D.MovePosition(m_CandidatePosition);
+        }
+
+        if (CandidateVelocity.x < 0) {
+            m_SpriteRenderer.flipX = true;
+        } else if (CandidateVelocity.x > 0) {
+            m_SpriteRenderer.flipX = false;
         }
     }
 
@@ -149,7 +153,7 @@ public class PlayerMovementManager : MonoBehaviour
             Collider2D currentPlatform = m_GroundCollider;
             m_PlatformsRecentlyDropped.Add(currentPlatform);
 
-            StartCoroutine(Sync.RunPerFrame(IgnorePlatformDroppedDuration, () => {
+            StartCoroutine(Sync.Delay(IgnorePlatformDroppedDuration, () => {
                 m_PlatformsRecentlyDropped.Remove(currentPlatform);
             }));
         }
@@ -158,11 +162,12 @@ public class PlayerMovementManager : MonoBehaviour
     // Sets CandidateVelocity based on input and grounding
     void ProposeVelocity()
     {
-        float worldspaceMoveInput = GetMoveInput();
+        float moveInput = GetMoveInput();
+        m_PreviousMoveInput = moveInput;
 
         if (IsGrounded && !IsTooSteep(m_GroundNormal)) {
             // Grounded movement
-            float input = worldspaceMoveInput * GroundSpeed;
+            float input = moveInput * GroundSpeed;
             CandidateVelocity = input * VectorAlongSurface(m_GroundNormal);
 
             // Grounded jump
@@ -180,7 +185,7 @@ public class PlayerMovementManager : MonoBehaviour
                     Debug.Log("Sliding");
                 } else {
                     // Air strafing
-                    float input = worldspaceMoveInput * AirStrafeSpeed;
+                    float input = moveInput * AirStrafeSpeed;
 
                     // Apply air strafing
                     CandidateVelocity = new Vector2(
@@ -210,8 +215,14 @@ public class PlayerMovementManager : MonoBehaviour
 
     float GetMoveInput()
     {
-        if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended)) {
+        if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
             return 0.0f;
+        } else if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Casting)) {
+            if (!IsGrounded) {
+                return m_PreviousMoveInput;
+            } else {
+                return 0.0f;
+            }
         }
 
         return m_PlayerInputManager.GetMoveInput();
@@ -219,7 +230,7 @@ public class PlayerMovementManager : MonoBehaviour
 
     bool GetDropInput()
     {
-        if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended)) {
+        if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
             return false;
         }
 
@@ -228,7 +239,7 @@ public class PlayerMovementManager : MonoBehaviour
 
     bool GetJumpInput()
     {
-        if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended)) {
+        if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
             return false;
         }
 
@@ -312,13 +323,8 @@ public class PlayerMovementManager : MonoBehaviour
 
             if (IsGrounded) {
                 if (IsTooSteep(hit.normal)) {
-                    if (!IsTooSteep(m_GroundNormal)) {
-                        // Moving from regular ground -> steep ground: stop motion, don't allow players to walk onto steep surfaces
-                        CandidateVelocity = Vector2.zero;
-                    } else {
-                        // Moving from steep ground -> regular ground: stop motion
-                        CandidateVelocity = Vector2.zero;
-                    }
+                    // Moving from ground -> steep ground: stop motion
+                    CandidateVelocity = Vector2.zero;
                 } else {
                     if (!IsTooSteep(m_GroundNormal)) {
                         // Moving from regular ground -> regular ground: reorientate movement along the next ground
@@ -329,13 +335,8 @@ public class PlayerMovementManager : MonoBehaviour
                     }
                 }
             } else {
-                if (IsTooSteep(hit.normal)) {
-                    // Moving from air -> steep ground: stop motion
-                    CandidateVelocity = Vector2.zero;
-                } else {
-                    // Moving from air -> regular ground: stop motion, player can take over
-                    CandidateVelocity = Vector2.zero;
-                }
+                // Moving from air -> ground: stop motion
+                CandidateVelocity = Vector2.zero;
             }
         }
     }

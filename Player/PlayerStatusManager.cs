@@ -3,13 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Re-applications overwrite: if an ability inflicting a status S for X frames is applied to a player who already has S with Y remaining frames, the player is set to have S for X more frames
+
+// Compound statuses are independent: if an ability inflicting a status S1 for X frames is applied to a player who has a status S' = S1 | S2 | ..., the player is set to have S1 for X frames and S' remains as usual (as opposed to S' being overwritten just because one of its statuses is overwritten). Furthermore, compounded statuses must be implemented independently - they are not automatically implemented if their parts are implemented.
+
 [Flags]
 public enum Status
 {
-    // A rooted player cannot influence their own movement from regular keypresses nor abilities, but is still subject to gravity and others' forces
+    // A rooted player cannot influence their own movement from regular keypresses nor abilities, but is still subject to gravity and others' forces. Additionally, if a player is rooted in the air, their previous air strafe input (if any) is maintained, which gives the impression that their velocity is preserved.
     Rooted,
 
-    // A suspended player cannot move or be made to move. An airborne player exiting suspension will drop vertically, even if their velocity was heading elsewhere prior to the suspension (i.e. suspension resets velocity)
+    // A suspended player cannot move or be made to move. An airborne player exiting suspension will continue along their previous velocity (i.e. suspension preserves velocity)
     Suspended,
 
     // A silenced player cannot use any abilities
@@ -21,7 +25,7 @@ public enum Status
     // A confused player has their left and right movement keybinds swapped
     Confused,
 
-    // An invincible player cannot be damaged (even by DoT effects applied before the invincibility), but may be healed and knocked back etc.
+    // An invincible player cannot be damaged (even by DoT effects applied before the invincibility), but may be hit, healed and knocked back etc.
     Invincible,
 
     // An intangible player cannot be targeted but may still take damage from effects applied before the intangibility
@@ -35,15 +39,14 @@ public enum Status
 
     // Stunned + intangible
     Frozen,
+
+    // Rooted + silenced + disarmed. (if this were just stunned): This exists as PlayerAbilityManager interrupts all ongoing abilities when the player is stunned regularly, but abilities inflict their own stun, e.g. during startup and recovery, and of course should not interrupt themselves
+    Casting,
 }
 
 public class PlayerStatusManager : MonoBehaviour
 {
-    // Re-applications overwrite: if an ability inflicting a status S for X frames is applied to a player who already has S with Y remaining frames, the player is set to have S for X more frames
-
-    // Compound statuses are independent from their parts: if an ability inflicting a status S1 for X frames is applied to a player who has a status S' = S1 | S2 | ..., the player is set to have S1 for X frames and S' remains as usual (as opposed to S' being overwritten just because one of its statuses is overwritten)
-
-    public class StatusInfo
+    class StatusInfo
     {
         public event EventHandler OnStart;
         public event EventHandler OnEnd;

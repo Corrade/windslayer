@@ -7,7 +7,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Text))]
 public class DebugText : MonoBehaviour
 {
-    public PlayerHealthManager PlayerHealthManager;
+    public PlayerStatManager PlayerStatManager;
     public PlayerStatusManager PlayerStatusManager;
     
     Text m_Text;
@@ -22,8 +22,8 @@ public class DebugText : MonoBehaviour
     void Update()
     {
         m_Text.text = "";
-        m_Text.text += "Health: " + PlayerHealthManager.Health + "\n";
-        m_Text.text += "Mana: " + PlayerHealthManager.Mana + "\n";
+        m_Text.text += "Health: " + PlayerStatManager.Health + "\n";
+        m_Text.text += "Mana: " + PlayerStatManager.Mana + "\n";
         m_Text.text += "\n";
 
         foreach (Status status in Enum.GetValues(typeof(Status))) {

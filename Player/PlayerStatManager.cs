@@ -3,187 +3,136 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(PlayerStatManager)), RequireComponent(typeof(PlayerStatusManager))]
 public class PlayerStatManager : MonoBehaviour
 {
-    // Non-combat stats
-    public int Level {
+    [Tooltip("Percentage of damage mitigated by block")]
+    public float BlockModifier = 0.5f;
+
+    public float Health { get; private set; }
+    public float Mana { get; private set; }
+    public int Team { get; private set; }
+    public int Kills { get; private set; }
+    public int Deaths { get; private set; }
+    public bool IsDead { get; private set; }
+
+    public int MaxHealth {
         get {
-            return m_Level;
+            return m_MaxHealth;
         }
         set {
-            m_Level = value;
-            OnLevelChange?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    public float Exp {
-        get {
-            return m_Exp;
-        }
-        set {
-            m_Exp = value;
-            OnExpChange?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    public int Gold {
-        get {
-            return m_Gold;
-        }
-        set {
-            m_Gold = value;
-            OnGoldChange?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    public int Wsp {
-        get {
-            return m_Wsp;
-        }
-        set {
-            m_Wsp = value;
-            OnWspChange?.Invoke(this, EventArgs.Empty);
+            m_MaxHealth = value;
+            OnMaxHealthChange?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    // Base stats
-    public int Str {
+    public int MaxMana {
         get {
-            return m_Str;
+            return m_MaxMana;
         }
         set {
-            m_Str = value;
-            OnStrChange?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    public int Dex {
-        get {
-            return m_Dex;
-        }
-        set {
-            m_Dex = value;
-            OnDexChange?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    public int Int {
-        get {
-            return m_Int;
-        }
-        set {
-            m_Int = value;
-            OnIntChange?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    public int Spr {
-        get {
-            return m_Spr;
-        }
-        set {
-            m_Spr = value;
-            OnSprChange?.Invoke(this, EventArgs.Empty);
+            m_MaxMana = value;
+            OnMaxManaChange?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    // Dynamic stats - these are determined by non-combat/base stats
-    public int MaxHealth { get; private set; }
-    public int MaxMana { get; private set; }
-    public int PhyPow { get; private set; }
-    public int PhyDef { get; private set; }
-    public int MagPow { get; private set; }
-    public int MagDef { get; private set; }
+    public int Power {
+        get {
+            return m_Power;
+        }
+        set {
+            m_Power = value;
+            OnPowerChange?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public int Defence {
+        get {
+            return m_Defence;
+        }
+        set {
+            m_Defence = value;
+            OnDefenceChange?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     // Events
-    public event EventHandler OnLevelChange;
-    public event EventHandler OnExpChange;
-    public event EventHandler OnGoldChange;
-    public event EventHandler OnWspChange;
-
-    public event EventHandler OnStrChange;
-    public event EventHandler OnDexChange;
-    public event EventHandler OnIntChange;
-    public event EventHandler OnSprChange;
-
     public event EventHandler OnMaxHealthChange;
     public event EventHandler OnMaxManaChange;
-    public event EventHandler OnPhyPowChange;
-    public event EventHandler OnPhyDefChange;
-    public event EventHandler OnMagPowChange;
-    public event EventHandler OnMagDefChange;
+    public event EventHandler OnPowerChange;
+    public event EventHandler OnDefenceChange;
 
     // Backing fields
-    int m_Level;
-    float m_Exp;
-    int m_Gold;
-    int m_Wsp;
+    int m_MaxHealth;
+    int m_MaxMana;
+    int m_Power;
+    int m_Defence;
 
-    int m_Str;
-    int m_Dex;
-    int m_Int;
-    int m_Spr;
+    PlayerStatusManager m_PlayerStatusManager;
 
     void Start()
     {
-        // Initialise non-combat/base stats
-        Level = 1;
-        Exp = 0f;
-        Gold = 0;
-        Wsp = 0;
-        Str = 10;
-        Dex = 10;
-        Int = 10;
-        Spr = 10;
+        m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
 
-        // Hook up dynamic stats to the events of stats they're based on
-        OnLevelChange += (object sender, EventArgs e) => SetMaxHealth();
-        OnSprChange += (object sender, EventArgs e) => SetMaxHealth();
-
-        OnLevelChange += (object sender, EventArgs e) => SetMaxMana();
-        OnIntChange += (object sender, EventArgs e) => SetMaxMana();
-
-        OnStrChange += (object sender, EventArgs e) => SetPhyPow();
-        OnSprChange += (object sender, EventArgs e) => SetPhyDef();
-        OnIntChange += (object sender, EventArgs e) => SetMagPow();
-        OnDexChange += (object sender, EventArgs e) => SetMagDef();
-
-        // Initialise dynamic stats
-        SetMaxHealth();
-        SetMaxMana();
-        SetPhyPow();
-        SetPhyDef();
-        SetMagPow();
-        SetMagDef();
+        m_MaxHealth = 100;
+        m_MaxMana = 100;
+        m_Power = 10;
+        m_Defence = 10;
+    
+        Health = MaxHealth;
+        Mana = MaxMana;
+        Team = 0;
+        Kills = 0;
+        Deaths = 0;
+        IsDead = false;
     }
 
-    void SetMaxHealth()
+    public void TakeDamage(float damage, GameObject damageSource, bool affectedByBlock, int hitStun)
     {
-        MaxHealth = 100 + 5*Level + 2*Spr;
-        OnMaxHealthChange?.Invoke(this, EventArgs.Empty);
+        if (!m_PlayerStatusManager.Has(Status.Invincible)) {
+            float healthBefore = Health;
+            Health -= DamageFormula(damage, affectedByBlock);
+            Health = Mathf.Clamp(Health, 0f, MaxHealth);
+            float trueDamageAmount = healthBefore - Health;
+        }
+
+        if (hitStun > 0) {
+            m_PlayerStatusManager.StartStatus(Status.Stunned, hitStun);
+            m_PlayerStatusManager.StartStatus(Status.Invincible, hitStun);
+        } // if affectedByBlock && IsBlocking() then do block stun instead
+
+        HandleDeath();
     }
 
-    void SetMaxMana()
+    float DamageFormula(float rawDamage, bool affectedByBlock)
     {
-        MaxMana = 100 + 5*Level + 2*Int;
-        OnMaxManaChange?.Invoke(this, EventArgs.Empty);
+        float finalDamage = rawDamage;
+
+        if (affectedByBlock && false) { // AND is blocking
+            finalDamage *= BlockModifier;
+        }
+
+        return finalDamage;
     }
 
-    void SetPhyPow()
+    public void TakeHealing(float healing, GameObject healSource)
     {
-        PhyPow = 3*Str;
-        OnPhyPowChange?.Invoke(this, EventArgs.Empty);
+        TakeDamage(-healing, healSource, false, 0);
     }
 
-    void SetPhyDef()
+    public void Kill()
     {
-        PhyDef = 3*Spr;
-        OnPhyDefChange?.Invoke(this, EventArgs.Empty);
+        TakeDamage(MaxHealth, null, false, 0);
     }
 
-    void SetMagPow()
+    void HandleDeath()
     {
-        MagPow = 3*Int;
-        OnMagPowChange?.Invoke(this, EventArgs.Empty);
-    }
+        if (IsDead) {
+            return;
+        }
 
-    void SetMagDef()
-    {
-        MagDef = 3*Dex; // Makes no sense
-        OnMagDefChange?.Invoke(this, EventArgs.Empty);
+        if (Health <= 0f) {
+            IsDead = true;
+        }
     }
 }

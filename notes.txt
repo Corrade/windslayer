@@ -1,141 +1,75 @@
 todo
-    actually fix movement
-    camera
+    break up code into a client-server sort of format. client just sends input and the server produces commands.
 
-    ability system
-    light attack
     heavy attack
+    attacker stun
     guard and blocking
     dash
-    hook double jump into ability system
+    decide what goes in the ability system and what doesn't (implement silence statuses) - double jump?
 
-
-
-
-
-server browser
-connecting to server
-game end conditions
-scoreboard
-
-menus
-    top
-        pvp interface
+ui
+    main menu
+    server browser
+        host server interface
+    hud
+        health and mana
         skills
-        settings
-    mid
-        character info (name, class, guild, hp/mp, exp, pvp, attack, defence, other stats)
-        equipment
-        inventory
-    low
-        quests
-        map
-        social (friends, guild)
+        chatbox
+    tab scoreboard (join teams, leave arena)
+    character menu (skills and stats; drag skills to hud skills)
+    settings menu
+        keybinding
 
-ability manager
-settings manager
-record manager (name, class, rank, pvp stats)
-social manager (friends, guild)
-item manager (equipment, inventory)
-quest manager
-map manager (position in map, seen areas, etc.)
-
-networking
-    https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
-    https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
-    https://en.wikipedia.org/wiki/Netcode
-    https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
-
-    https://www.gabrielgambetta.com/client-server-game-architecture.html
-
-    "Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
-
-    client side prediction uses the same code that the server uses for movement checking/logic
-
-
-    always send inputs, not position
-    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
-
-
-keys
-    toggle chat
-    move left
-    move right
-    jump
-    crouch
-    settings
-    quests
-    map
-    social tab
-    inventory
-    equipment
-    character sheet
-    skills
-    pvp menu
-    pick up
-    interact
-    ABILITY KEYBINDS
+game flow
+    host server (max players, first team to x kills, respawn time)
+    join team buttons, leave arena buttons,
+    wait for host to start game
+    (re)spawn all players, combat. if they die, respawn them after the given respawn time.
+    when the team reaches x kills, end game
+    announce winner
+    force show scoreboard, freeze all players
 
 
 
 
+abilities can only be used when grounded (except block, light, strong, double jump)
 
-prefer this to defining hitbox subclasses to centralise the palatably low amount of code associated with a single ability
+attack with multiple hitboxes: pierce count shared by abilility rather than per-hitbox
+how to handle abilities that may have multiple attacks on the same screeen at once? or rather, just how do you reset an ability anyway
+an ability may start before its previous invocation has completed. where is ability state being tracked? (i guess instantiate ability, which instantiates hitboxes. in order to instantiate something, it must be a unity class)
 
-gotta have an easy way to adjust stats and apply statuses on a timer
-removing these statuses shouldn't be the responsibility of the ability, but rather of the inflicted person or of the debuff/buff itself
+hit stun in air: complete immobilisation, suspend if in air BUT PRESERVE VELOCITY
+https://youtu.be/4JMx2fWfuD8?t=220
 
-dot (tick speed, damage per tick)
-apply damage (damage type)
+attacker stun air: suspend + BUT PRESERVE VELOCITY
+https://youtu.be/YG4tUOohzkk?t=43
 
-any attack : ability
-    colliders
-    ability script
-        public collider(s)
-        private hitbox class(es)
-            each one is passed in a collider, curve, speed, maxduration, pierce, Hit, isTarget, parent, etc.
-        in OnActiveBegin(), those hitboxes are instantiated
-        definitionsof Hit and isTarget (usually only one of each)
+invincible while in hit stun
 
-during startup and recovery, the player may not provide any movement or ability input, but they're still affected by their existing momentum (sliding and gravity)
+elementalist https://www.youtube.com/watch?v=4JMx2fWfuD8
+novice https://www.youtube.com/watch?v=iY_swqviRk0
+royalz (ws2) https://www.youtube.com/watch?v=W3ci2qglLWo
+elementalist (ws2) https://www.youtube.com/watch?v=kU6irPevMfY
+rogue https://www.youtube.com/watch?v=y-OZhKhDRC0
+monk https://www.youtube.com/watch?v=7esWbQEzSFA
+shaolin/counter https://www.youtube.com/watch?v=YG4tUOohzkk
 
+strong attack hit in air: attacker stun (equivalent to recovery if on grounded?)
 
-
-
-
-
-
-
-
-hold jump to jump further. note that the windslayer max jump height is super high
+air strong attack (can flip directions) interrupt if hit ground
 
 
 attack used: startup -> active -> recovery (or attacker stun)
-enemy hit -> block stun or hit stun
+hit by enemy -> block stun or hit stun
 block stun < attacker stun < hit stun
-    attacker stun: if you hit a strong attack in the air that's not blocked, you are stunned, but of course for a shorter time than your target's hit stun. accordingly, hit stun is a lot longer than usual. this mechanic slows down combat.
+    attacker stun: if you hit a strong attack in the air that's not blocked, you are stunned
 
 if you're hit while in attacker stun (and possibly other stuns), you immediately go into the hit stun / block stun (well, you wouldn't be blocking if you're in attacker stun). this may actually be shorter than your current stun.
-
-https://www.youtube.com/watch?v=HOZqk6jDPIc
-    grounded strong: slow
-    air strong: fast and has attacker stun
-
-    attacker stun prevents ALL movement
-    hit stun prevents ALL movement, at least for strong attacks
-
-air strong attack (can flip directions) interrupt if hit ground
 
 
 
 
 abilities https://docs.google.com/spreadsheets/d/1QUnXIzWVExO5JoW9OS_05YbLq0kzF8RGI3YQcIGdbmk/edit?usp=drive_web&ouid=108112850293498042381
-
-mage v warrior https://www.youtube.com/watch?v=rKdISL55qhg
-team fight https://www.youtube.com/watch?v=W3ci2qglLWo
-counter vs shaolin https://www.youtube.com/watch?v=YG4tUOohzkk
-various 1v1s https://www.youtube.com/watch?v=RMUTTRkjOP4
-    1:54: block stun < attacker stun < hit stun.
 
 oo https://docs.google.com/document/d/1tVc7g_WdPEFBj_nemLt3S26gVPeTTZRs0MWle653z_Q/edit
     often in pursuit of maximum flexibility (minimal immobility), you introduce needless complexity
@@ -204,3 +138,18 @@ c#
     design patterns
         https://en.wikipedia.org/wiki/Software_design_pattern#Classification_and_list
 
+networking
+    https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
+    https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
+    https://en.wikipedia.org/wiki/Netcode
+    https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
+
+    https://www.gabrielgambetta.com/client-server-game-architecture.html
+
+    "Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
+
+    client side prediction uses the same code that the server uses for movement checking/logic
+
+
+    always send inputs, not position
+    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
