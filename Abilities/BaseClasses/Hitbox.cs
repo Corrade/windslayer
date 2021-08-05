@@ -14,16 +14,18 @@ public class Hitbox : MonoBehaviour
     int m_FramesElapsed;
 
     Attack m_Attack;
-    Transform m_PositionParent;
-    PlayerMovementManager m_ParentPlayerMovement;
 
-    Vector3 m_PathStart;
-    Curve m_Path;
+    Vector3 m_InitPos;
     float m_Speed;
+    Curve m_Path;
+
     int m_Lifetime;
 
+    // An alternative implementation could define these functions in the interface of the attack and call them through a reference, but that would not support attacks that need multiple implementations of the same delegate, e.g. to create multiple hitboxes with different behaviours. Another option would be to define these delegates in a hitbox subclass, but that would require creating at least one hitbox subclass for each attack, which would be quite tedious.
     Func<GameObject, bool> m_IsTarget; // f(collided game object) -> whether or not the object should be hit, i.e. most often this will check the team of the hit player
     Action<GameObject> m_Hit; // f(hit game object)
+
+    bool m_IsReady = false;
 
     void Start()
     {
@@ -31,25 +33,22 @@ public class Hitbox : MonoBehaviour
         Destroyed = false;
     }
 
-    // These variables are passed in from the calling attack. Regarding the delegates, an alternative implementation could define them in the interface of the attack and call them through a reference, but that would not support attacks that need multiple implementations of the same delegate, e.g. to create multiple hitboxes with different behaviours.
-    // Hitboxes are responsible for destroying themselves as they may outlast the ability that created them. The ability caller may still destroy them early by called Interrupt().
+    // These variables are passed in from the calling attack.
     public void Initialise(
         Attack attack,
-        Transform positionParent,
-        Vector3 pathStart,
-        Curve path,
+        Vector3 initPos,
         float speed,
+        Curve path,
         int lifetime,
         Func<GameObject, bool> isTarget,
         Action<GameObject> hit
     ) {
         m_Attack = attack;
-        m_PositionParent = positionParent; // instead, just instantiate as a child of the appropriate parent
-        m_ParentPlayerMovement = positionParent.GetComponent<PlayerMovementManager>(); // May return null
 
-        m_PathStart = pathStart;
-        m_Path = path;
+        m_InitPos = initPos;
         m_Speed = speed;
+        m_Path = path;
+
         m_Lifetime = lifetime;
 
         m_IsTarget = isTarget;
@@ -59,21 +58,31 @@ public class Hitbox : MonoBehaviour
         m_LifetimeCoroutine = StartCoroutine(Sync.Delay(m_Lifetime, () => { End(); }));
 
         SetPosition();
-        m_Hitbox.gameObject.SetActive(true);
+        m_IsReady = true;
     }
 
-    public void Interrupt() {
+    // Hitboxes are responsible for destroying themselves as they may outlast the ability that created them. The ability caller may still destroy them early by called Interrupt().
+    public void Interrupt()
+    {
         StopCoroutine(m_LifetimeCoroutine);
         End();
     }
 
     void Update()
     {
+        if (!m_IsReady) {
+            return;
+        }
+
         m_FramesElapsed++;
     }
 
     void FixedUpdate()
     {
+        if (!m_IsReady) {
+            return;
+        }
+
         CheckForHits();
         SetPosition();
     }
@@ -106,18 +115,11 @@ public class Hitbox : MonoBehaviour
 
     void SetPosition()
     {
-        transform.position = m_PositionParent.position;
-        Vector3 offset = m_PathStart + m_Speed * m_Path.GetPoint(m_FramesElapsed);
-
-        // If the position parent is a player, the hitbox should be facing in the same direction of the player. Hitboxes face right by default, so we flip the hitbox if the player is facing left.
-        if (m_ParentPlayerMovement && m_ParentPlayerMovement.IsFacingLeft) {
-            transform.position = m_PositionParent.position - offset;
-        } else {
-            transform.position = m_PositionParent.position + offset;
-        }
+        transform.localPosition = m_InitPos + m_Speed * m_Path.GetPoint(m_FramesElapsed);
     }
 
-    void End() {
+    void End()
+    {
         Destroyed = true;
         Destroy(gameObject);
     }

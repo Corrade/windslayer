@@ -32,7 +32,7 @@ public class PlayerAbilityManager : MonoBehaviour
         }
 
         if (m_PlayerInputManager.GetInputDown("light_attack", true)) {
-            Ability instance = Instantiate(LightAttackPrefab, transform.position, transform.rotation);
+            Ability instance = Instantiate(LightAttackPrefab, transform);
             m_ActiveAbilities.Add(instance);
             instance.Initialise(gameObject);
         }

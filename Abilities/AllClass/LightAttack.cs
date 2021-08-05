@@ -7,8 +7,8 @@ public class LightAttack : Attack
     [Tooltip("The hitbox")]
     public Hitbox LightAttackHitbox;
 
-    [Tooltip("The offset of the hitbox")]
-    public Vector3 PathStart;
+    [Tooltip("The initial position of the hitbox from which its path is added onto")]
+    public Vector3 InitPos;
 
     [Tooltip("Damage")]
     public int Damage;
@@ -21,9 +21,9 @@ public class LightAttack : Attack
 
     protected override void OnActiveBegin()
     {
-        Hitbox hitboxInstance = Instantiate(LightAttackHitbox, transform.position, transform.rotation);
+        Hitbox hitboxInstance = Instantiate(LightAttackHitbox, transform);
         m_HitboxesToDestroyOnInterrupt.Add(hitboxInstance);
-        hitboxInstance.Initialise(this, m_Player.transform, PathStart, Curve.Static, 0f, ActiveDuration, IsTarget, Hit);
+        hitboxInstance.Initialise(this, InitPos, Curve.Static, 0f, ActiveDuration, IsTarget, Hit);
     }
 
     bool IsTarget(GameObject otherPlayer)
@@ -43,6 +43,7 @@ public class LightAttack : Attack
             stat.TakeDamage(Damage, m_Player, true);
         }
 
+        // perhaps move elsewhere as this will be common
         PlayerStatusManager status = otherPlayer.GetComponent<PlayerStatusManager>();
         if (status) {
             if (false) { // IsBlocking()
