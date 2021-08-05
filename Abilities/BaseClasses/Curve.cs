@@ -31,8 +31,8 @@ public class Curve
         m_SetY = setY;
     }
 
-    public Vector2 GetPoint(int t)
+    public Vector3 GetPoint(int t)
     {
-        return new Vector2(m_SetX(t), m_SetY(t));
+        return new Vector3(m_SetX(t), m_SetY(t), 0f);
     }
 }

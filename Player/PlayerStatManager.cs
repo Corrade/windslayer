@@ -88,7 +88,7 @@ public class PlayerStatManager : MonoBehaviour
         IsDead = false;
     }
 
-    public void TakeDamage(float damage, GameObject damageSource, bool affectedByBlock, int hitStun)
+    public void TakeDamage(float damage, GameObject damageSource, bool affectedByBlock)
     {
         if (!m_PlayerStatusManager.Has(Status.Invincible)) {
             float healthBefore = Health;
@@ -96,11 +96,6 @@ public class PlayerStatManager : MonoBehaviour
             Health = Mathf.Clamp(Health, 0f, MaxHealth);
             float trueDamageAmount = healthBefore - Health;
         }
-
-        if (hitStun > 0) {
-            m_PlayerStatusManager.StartStatus(Status.Stunned, hitStun);
-            m_PlayerStatusManager.StartStatus(Status.Invincible, hitStun);
-        } // if affectedByBlock && IsBlocking() then do block stun instead
 
         HandleDeath(damageSource);
     }
@@ -118,12 +113,12 @@ public class PlayerStatManager : MonoBehaviour
 
     public void TakeHealing(float healing, GameObject healSource)
     {
-        TakeDamage(-healing, healSource, false, 0);
+        TakeDamage(-healing, healSource, false);
     }
 
     public void Kill()
     {
-        TakeDamage(MaxHealth, null, false, 0);
+        TakeDamage(MaxHealth, null, false);
     }
 
     void HandleDeath(GameObject damageSource)

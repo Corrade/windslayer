@@ -16,10 +16,12 @@ public class PlayerSpriteManager : MonoBehaviour
 
     void Update()
     {
-        if (m_PlayerMovementManager.IsFacingLeft()) {
+        /*
+        if (m_PlayerMovementManager.IsFacingLeft) {
             m_SpriteRenderer.flipX = true;
-        } else if (m_PlayerMovementManager.IsFacingRight()) {
+        } else {
             m_SpriteRenderer.flipX = false;
         }
+        */
     }
 }

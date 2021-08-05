@@ -40,6 +40,7 @@ public class PlayerMovementManager : MonoBehaviour
 
     public Vector2 CandidateVelocity { get; private set; }
     public bool IsGrounded { get; private set; }
+    public bool IsFacingLeft { get; private set; }
 
     BoxCollider2D m_CollisionCollider;
     Rigidbody2D m_RB2D;
@@ -70,14 +71,6 @@ public class PlayerMovementManager : MonoBehaviour
         m_PlatformsRecentlyDropped = new List<Collider2D>();
     }
 
-    public bool IsFacingLeft() {
-        return CandidateVelocity.x < 0;
-    }
-
-    public bool IsFacingRight() {
-        return CandidateVelocity.x > 0;
-    }
-
     void FixedUpdate()
     {
         if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
@@ -99,6 +92,14 @@ public class PlayerMovementManager : MonoBehaviour
             // Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition) + ", CandidateVelocity = " + Debugger.Vector2Full(CandidateVelocity));
             // Debugger.DrawRay(m_RB2D.position, CandidateVelocity * Time.fixedDeltaTime, Color.blue, 1f);
             m_RB2D.MovePosition(m_CandidatePosition);
+        }
+
+        if (CandidateVelocity.x < 0) {
+            IsFacingLeft = true;
+            transform.localScale = new Vector3(-1f, 1f, 1f);
+        } else if (CandidateVelocity.x > 0) {
+            IsFacingLeft = false;
+            transform.localScale = new Vector3(1f, 1f, 1f);
         }
     }
 

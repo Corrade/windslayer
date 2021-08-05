@@ -15,6 +15,7 @@ public abstract class Ability : MonoBehaviour
 
     protected GameObject m_Player;
     protected PlayerStatusManager m_PlayerStatusManager;
+    protected PlayerMovementManager m_PlayerMovementManager;
     protected PlayerStatManager m_PlayerStatManager;
     Coroutine m_Coroutine;
 
@@ -22,6 +23,7 @@ public abstract class Ability : MonoBehaviour
     {
         m_Player = player;
         m_PlayerStatusManager = player.GetComponent<PlayerStatusManager>();
+        m_PlayerMovementManager = player.GetComponent<PlayerMovementManager>();
         m_PlayerStatManager = player.GetComponent<PlayerStatManager>();
         m_Coroutine = StartCoroutine(Run());
     }

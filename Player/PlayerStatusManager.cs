@@ -113,7 +113,9 @@ public class PlayerStatusManager : MonoBehaviour
     // Statuses will clear by themselves
     public void StartStatus(Status status, int frames)
     {
-        m_Statuses[status].StartStatus(frames);
+        if (frames > 0) {
+            m_Statuses[status].StartStatus(frames);
+        }
     }
 
     public void ClearStatus(Status status)

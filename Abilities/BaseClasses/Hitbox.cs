@@ -14,9 +14,10 @@ public class Hitbox : MonoBehaviour
     int m_FramesElapsed;
 
     Attack m_Attack;
-    GameObject m_Player;
     Transform m_PositionParent;
+    PlayerMovementManager m_ParentPlayerMovement;
 
+    Vector3 m_PathStart;
     Curve m_Path;
     float m_Speed;
     int m_Lifetime;
@@ -34,8 +35,8 @@ public class Hitbox : MonoBehaviour
     // Hitboxes are responsible for destroying themselves as they may outlast the ability that created them. The ability caller may still destroy them early by called Interrupt().
     public void Initialise(
         Attack attack,
-        GameObject player,
         Transform positionParent,
+        Vector3 pathStart,
         Curve path,
         float speed,
         int lifetime,
@@ -43,9 +44,10 @@ public class Hitbox : MonoBehaviour
         Action<GameObject> hit
     ) {
         m_Attack = attack;
-        m_Player = player;
-        m_PositionParent = positionParent;
+        m_PositionParent = positionParent; // instead, just instantiate as a child of the appropriate parent
+        m_ParentPlayerMovement = positionParent.GetComponent<PlayerMovementManager>(); // May return null
 
+        m_PathStart = pathStart;
         m_Path = path;
         m_Speed = speed;
         m_Lifetime = lifetime;
@@ -56,11 +58,13 @@ public class Hitbox : MonoBehaviour
         m_FramesElapsed = 0;
         m_LifetimeCoroutine = StartCoroutine(Sync.Delay(m_Lifetime, () => { End(); }));
 
-        // If the position parent is a player, the hitbox should be facing in the same direction of the player. Hitboxes face right by default, so we flip the hitbox if the player is facing left. (The facing direction of the player won't change during an ability so we only need to check this at the start.)
-        PlayerMovementManager movement = positionParent.GetComponent<PlayerMovementManager>();
-        if (movement && movement.IsFacingLeft()) {
-            transform.position = new Vector3(-transform.position.x, transform.position.y, transform.position.z);
-        }
+        SetPosition();
+        m_Hitbox.gameObject.SetActive(true);
+    }
+
+    public void Interrupt() {
+        StopCoroutine(m_LifetimeCoroutine);
+        End();
     }
 
     void Update()
@@ -70,11 +74,17 @@ public class Hitbox : MonoBehaviour
 
     void FixedUpdate()
     {
+        CheckForHits();
+        SetPosition();
+    }
+
+    void CheckForHits()
+    {
         List<RaycastHit2D> results = new List<RaycastHit2D>();
         ContactFilter2D filter = new ContactFilter2D();
         filter.NoFilter();
 
-        m_Hitbox.Cast(Vector2.up, filter, results, 0.1f, true);
+        m_Hitbox.Cast(Vector2.up, filter, results, 0.01f, true);
 
         foreach (RaycastHit2D hit in results) {
             if (hit.collider == null || !m_IsTarget(hit.collider.gameObject)) {
@@ -92,13 +102,19 @@ public class Hitbox : MonoBehaviour
         if (m_Attack.Pierced == m_Attack.MaxPierce) {
             Interrupt();
         }
-
-        transform.position = m_PositionParent.position + m_Speed * (Vector3)m_Path.GetPoint(m_FramesElapsed);
     }
 
-    public void Interrupt() {
-        StopCoroutine(m_LifetimeCoroutine);
-        End();
+    void SetPosition()
+    {
+        transform.position = m_PositionParent.position;
+        Vector3 offset = m_PathStart + m_Speed * m_Path.GetPoint(m_FramesElapsed);
+
+        // If the position parent is a player, the hitbox should be facing in the same direction of the player. Hitboxes face right by default, so we flip the hitbox if the player is facing left.
+        if (m_ParentPlayerMovement && m_ParentPlayerMovement.IsFacingLeft) {
+            transform.position = m_PositionParent.position - offset;
+        } else {
+            transform.position = m_PositionParent.position + offset;
+        }
     }
 
     void End() {
