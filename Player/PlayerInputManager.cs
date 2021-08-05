@@ -35,11 +35,12 @@ public class PlayerInputManager : MonoBehaviour
         }
     }
 
-    Dictionary<string, Key> m_Binds;
+    protected Dictionary<string, Key> m_Binds;
 
     void Start()
     {
         m_Binds = new Dictionary<string, Key>();
+        /*
         m_Binds.Add("left", new Key(KeyCode.LeftArrow, false));
         m_Binds.Add("right", new Key(KeyCode.RightArrow, false));
         m_Binds.Add("jump", new Key(KeyCode.Space, true));
@@ -47,6 +48,18 @@ public class PlayerInputManager : MonoBehaviour
         m_Binds.Add("light_attack", new Key(KeyCode.S, false));
         m_Binds.Add("strong_attack", new Key(KeyCode.D, false));
         m_Binds.Add("block", new Key(KeyCode.A, false));
+        */
+        SetupBinds();
+    }
+    
+    protected virtual void SetupBinds() {
+        m_Binds.Add("left", new Key(KeyCode.A, false));
+        m_Binds.Add("right", new Key(KeyCode.D, false));
+        m_Binds.Add("jump", new Key(KeyCode.W, true));
+        m_Binds.Add("drop", new Key(KeyCode.S, true));
+        m_Binds.Add("light_attack", new Key(KeyCode.Z, false));
+        m_Binds.Add("strong_attack", new Key(KeyCode.C, false));
+        m_Binds.Add("block", new Key(KeyCode.X, false));
     }
 
     // Problem: normally, you can't reliably call GetKeyDown() or GetKeyUp() from FixedUpdate() since those events may fire off between fixed updates.

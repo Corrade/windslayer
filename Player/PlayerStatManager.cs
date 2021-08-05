@@ -3,15 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(PlayerStatManager)), RequireComponent(typeof(PlayerStatusManager))]
+[RequireComponent(typeof(PlayerStatusManager))]
 public class PlayerStatManager : MonoBehaviour
 {
     [Tooltip("Percentage of damage mitigated by block")]
     public float BlockModifier = 0.5f;
 
+    [Tooltip("Team number")]
+    public int Team = 0;
+
     public float Health { get; private set; }
     public float Mana { get; private set; }
-    public int Team { get; private set; }
     public int Kills { get; private set; }
     public int Deaths { get; private set; }
     public bool IsDead { get; private set; }
@@ -81,7 +83,6 @@ public class PlayerStatManager : MonoBehaviour
     
         Health = MaxHealth;
         Mana = MaxMana;
-        Team = 0;
         Kills = 0;
         Deaths = 0;
         IsDead = false;
@@ -101,7 +102,7 @@ public class PlayerStatManager : MonoBehaviour
             m_PlayerStatusManager.StartStatus(Status.Invincible, hitStun);
         } // if affectedByBlock && IsBlocking() then do block stun instead
 
-        HandleDeath();
+        HandleDeath(damageSource);
     }
 
     float DamageFormula(float rawDamage, bool affectedByBlock)
@@ -125,7 +126,7 @@ public class PlayerStatManager : MonoBehaviour
         TakeDamage(MaxHealth, null, false, 0);
     }
 
-    void HandleDeath()
+    void HandleDeath(GameObject damageSource)
     {
         if (IsDead) {
             return;
@@ -133,6 +134,12 @@ public class PlayerStatManager : MonoBehaviour
 
         if (Health <= 0f) {
             IsDead = true;
+            Deaths++;
+
+            PlayerStatManager stat = damageSource.GetComponent<PlayerStatManager>();
+            if (stat && stat != m_PlayerStatusManager) {
+                stat.Kills++;
+            }
         }
     }
 }

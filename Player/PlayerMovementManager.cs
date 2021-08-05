@@ -45,7 +45,6 @@ public class PlayerMovementManager : MonoBehaviour
     Rigidbody2D m_RB2D;
     PlayerInputManager m_PlayerInputManager;
     PlayerStatusManager m_PlayerStatusManager;
-    SpriteRenderer m_SpriteRenderer;
 
     Vector2 m_GroundNormal;
     Collider2D m_GroundCollider;
@@ -65,16 +64,24 @@ public class PlayerMovementManager : MonoBehaviour
         m_RB2D = GetComponent<Rigidbody2D>();
         m_PlayerInputManager = GetComponent<PlayerInputManager>();
         m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
-        m_SpriteRenderer = GetComponent<SpriteRenderer>();
         m_JumpCounter = 0;
         m_JumpTime = 0f;
         m_Jumping = false;
         m_PlatformsRecentlyDropped = new List<Collider2D>();
     }
 
+    public bool IsFacingLeft() {
+        return CandidateVelocity.x < 0;
+    }
+
+    public bool IsFacingRight() {
+        return CandidateVelocity.x > 0;
+    }
+
     void FixedUpdate()
     {
         if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
+            // But do not reset CandidateVelocity as to preserve it once these statuses clear
             return;
         }
     
@@ -92,12 +99,6 @@ public class PlayerMovementManager : MonoBehaviour
             // Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition) + ", CandidateVelocity = " + Debugger.Vector2Full(CandidateVelocity));
             // Debugger.DrawRay(m_RB2D.position, CandidateVelocity * Time.fixedDeltaTime, Color.blue, 1f);
             m_RB2D.MovePosition(m_CandidatePosition);
-        }
-
-        if (CandidateVelocity.x < 0) {
-            m_SpriteRenderer.flipX = true;
-        } else if (CandidateVelocity.x > 0) {
-            m_SpriteRenderer.flipX = false;
         }
     }
 

@@ -38,14 +38,6 @@ attack with multiple hitboxes: pierce count shared by abilility rather than per-
 how to handle abilities that may have multiple attacks on the same screeen at once? or rather, just how do you reset an ability anyway
 an ability may start before its previous invocation has completed. where is ability state being tracked? (i guess instantiate ability, which instantiates hitboxes. in order to instantiate something, it must be a unity class)
 
-hit stun in air: complete immobilisation, suspend if in air BUT PRESERVE VELOCITY
-https://youtu.be/4JMx2fWfuD8?t=220
-
-attacker stun air: suspend + BUT PRESERVE VELOCITY
-https://youtu.be/YG4tUOohzkk?t=43
-
-invincible while in hit stun
-
 elementalist https://www.youtube.com/watch?v=4JMx2fWfuD8
 novice https://www.youtube.com/watch?v=iY_swqviRk0
 royalz (ws2) https://www.youtube.com/watch?v=W3ci2qglLWo
@@ -54,15 +46,25 @@ rogue https://www.youtube.com/watch?v=y-OZhKhDRC0
 monk https://www.youtube.com/watch?v=7esWbQEzSFA
 shaolin/counter https://www.youtube.com/watch?v=YG4tUOohzkk
 
-strong attack hit in air: attacker stun (equivalent to recovery if on grounded?)
 
-air strong attack (can flip directions) interrupt if hit ground
+air strong attack (can flip directions?) interrupt if hit ground?
 
 
-attack used: startup -> active -> recovery (or attacker stun)
-hit by enemy -> block stun or hit stun
-block stun < attacker stun < hit stun
-    attacker stun: if you hit a strong attack in the air that's not blocked, you are stunned
+
+attack used: startup -> active -> recovery
+                               -> OR INSTEAD attacker stun (if you are airborne, hit an enemy and they don't block it. such airborne hits are only possible if you're using a light/strong attack)
+
+hit by enemy -> block stun (if blocking)
+             -> OR INSTEAD hit stun
+
+attacker stun and hit stun: suspended (preserve velocity) + silenced + disarmed, also brief invincibility
+    hit stun behaves as above when applied by an ability used from the ground https://youtu.be/4JMx2fWfuD8?t=220
+    attacker stun behaves as above when applied by an airborne strong attack https://youtu.be/YG4tUOohzkk?t=43
+
+duration
+    FOR THE SAME MOVE
+    block stun < attacker stun < hit stun
+    recovery ~= attacker stun (for an equivalent attack when performed on the ground vs airborne) (?)
 
 if you're hit while in attacker stun (and possibly other stuns), you immediately go into the hit stun / block stun (well, you wouldn't be blocking if you're in attacker stun). this may actually be shorter than your current stun.
 

@@ -31,6 +31,7 @@ public class Hitbox : MonoBehaviour
     }
 
     // These variables are passed in from the calling attack. Regarding the delegates, an alternative implementation could define them in the interface of the attack and call them through a reference, but that would not support attacks that need multiple implementations of the same delegate, e.g. to create multiple hitboxes with different behaviours.
+    // Hitboxes are responsible for destroying themselves as they may outlast the ability that created them. The ability caller may still destroy them early by called Interrupt().
     public void Initialise(
         Attack attack,
         GameObject player,
@@ -54,6 +55,12 @@ public class Hitbox : MonoBehaviour
 
         m_FramesElapsed = 0;
         m_LifetimeCoroutine = StartCoroutine(Sync.Delay(m_Lifetime, () => { End(); }));
+
+        // If the position parent is a player, the hitbox should be facing in the same direction of the player. Hitboxes face right by default, so we flip the hitbox if the player is facing left. (The facing direction of the player won't change during an ability so we only need to check this at the start.)
+        PlayerMovementManager movement = positionParent.GetComponent<PlayerMovementManager>();
+        if (movement && movement.IsFacingLeft()) {
+            transform.position = new Vector3(-transform.position.x, transform.position.y, transform.position.z);
+        }
     }
 
     void Update()

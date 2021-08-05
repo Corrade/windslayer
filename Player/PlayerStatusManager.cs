@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Re-applications overwrite: if an ability inflicting a status S for X frames is applied to a player who already has S with Y remaining frames, the player is set to have S for X more frames
+// Re-applications overwrite: if an ability inflicting a status S for X frames is applied to a player who already has S with Y remaining frames, the player is set to have S for X frames (even if X is less than Y)
 
 // Compound statuses are independent: if an ability inflicting a status S1 for X frames is applied to a player who has a status S' = S1 | S2 | ..., the player is set to have S1 for X frames and S' remains as usual (as opposed to S' being overwritten just because one of its statuses is overwritten). Furthermore, compounded statuses must be implemented independently - they are not automatically implemented if their parts are implemented.
 
@@ -19,7 +19,7 @@ public enum Status
     // A silenced player cannot use any abilities
     Silenced,
 
-    // A silenced player cannot light attack nor strong attack
+    // A disarmed player cannot light attack nor strong attack
     Disarmed,
 
     // A confused player has their left and right movement keybinds swapped
