@@ -44,6 +44,22 @@ monk https://www.youtube.com/watch?v=7esWbQEzSFA
 shaolin/counter https://www.youtube.com/watch?v=YG4tUOohzkk
 
 
+
+
+block problem
+on being stunned, all abilities (including block) are interrupted. but blocking should NOT be interrupted on hit. overriding the interrupt to just not stop the block would be wierd and unintuitive
+instead on hitting a blocked enemy, just do nothing except deal damage? hmm? how long is block stun anyway?
+should attacks be responsible for inflicting the block stun?
+what if an attack is unblockable? are all attacks blockable?
+(in regular games, if you block, you still enter hit stun, just for a shorter time. in windslayer is seems that you aren't stunned at all, you just take lower damage and continue the block)
+
+totally invincible during hit stun?
+
+
+
+
+
+
 air strong attack (can flip directions?) interrupt if hit ground?
 
 

@@ -36,9 +36,9 @@ public abstract class BasicAttack : Attack
 
         PlayerStatusManager status = other.GetComponent<PlayerStatusManager>();
         if (status) {
-            if (false) { // IsBlocking()
+            if (status.Has(Status.Blocking)) {
                 status.StartStatus(Status.Stunned, HitStun / 2);
-                status.StartStatus(Status.Invincible, HitStun);
+                status.StartStatus(Status.Invincible, HitStun / 2);
             } else {
                 status.StartStatus(Status.Stunned, HitStun);
                 status.StartStatus(Status.Invincible, HitStun);

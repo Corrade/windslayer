@@ -33,12 +33,12 @@ public abstract class Ability : MonoBehaviour
         End();
     }
 
-    void End() {
+    protected virtual void End() {
         m_PlayerStatusManager.ClearStatus(Status.Casting);
         Destroy(gameObject);
     }
 
-    IEnumerator Run()
+    protected virtual IEnumerator Run()
     {
         OnStartUpBegin();
         if (StartUpDuration > 0) {

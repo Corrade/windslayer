@@ -18,6 +18,8 @@ public class PlayerAbilityManager : MonoBehaviour
     [Tooltip("Strong attack ground")]
     public StrongAttackGround StrongAttackGroundPrefab;
 
+    [Tooltip("Block")]
+    public Block BlockPrefab;
 
     PlayerInputManager m_PlayerInputManager;
     PlayerStatusManager m_PlayerStatusManager;
@@ -39,7 +41,20 @@ public class PlayerAbilityManager : MonoBehaviour
     
     void Update()
     {
-        if (m_PlayerStatusManager.HasAny(Status.Casting, Status.Stunned, Status.Silenced)) {
+        if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Silenced)) {
+            return;
+        }
+
+        if (m_PlayerInputManager.GetInputUp("block", true)) {
+            foreach (Ability a in m_ActiveAbilities) {
+                if (a != null && a is Block) {
+                    Block block = (Block)a;
+                    block.ToggleOff();
+                }
+            }
+        }
+
+        if (m_PlayerStatusManager.Has(Status.Casting)) {
             return;
         }
 
@@ -63,6 +78,12 @@ public class PlayerAbilityManager : MonoBehaviour
                 instance = Instantiate(StrongAttackAirPrefab, transform);
             }
        
+            m_ActiveAbilities.Add(instance);
+            instance.Initialise(gameObject);
+        }
+
+        if (m_PlayerInputManager.GetInputDown("block", true)) {
+            Ability instance = Instantiate(BlockPrefab, transform);
             m_ActiveAbilities.Add(instance);
             instance.Initialise(gameObject);
         }

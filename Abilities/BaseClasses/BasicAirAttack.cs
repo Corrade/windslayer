@@ -12,6 +12,9 @@ public abstract class BasicAirAttack : BasicAttack
     {
         base.Hit(other);
 
-        m_PlayerStatusManager.StartStatus(Status.Stunned, AttackerStun);
+        PlayerStatusManager status = other.GetComponent<PlayerStatusManager>();
+        if (status && !status.Has(Status.Blocking)) {
+            m_PlayerStatusManager.StartStatus(Status.Stunned, AttackerStun);
+        }
     }
 }

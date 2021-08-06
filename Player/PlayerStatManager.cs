@@ -104,7 +104,7 @@ public class PlayerStatManager : MonoBehaviour
     {
         float finalDamage = rawDamage;
 
-        if (affectedByBlock && false) { // AND is blocking
+        if (affectedByBlock && m_PlayerStatusManager.Has(Status.Blocking)) {
             finalDamage *= BlockModifier;
         }
 

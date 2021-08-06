@@ -34,6 +34,9 @@ public enum Status
     // An invisible player has their player hidden from others but still produces dust clouds and ability effects etc.
     Invisible,
 
+    // A blocking player mitigates damage
+    Blocking,
+
     // Suspended + silenced + disarmed
     Stunned,
 
