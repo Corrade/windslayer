@@ -10,8 +10,7 @@ public class Hitbox : MonoBehaviour
     public bool Destroyed { get; private set; }
 
     Collider2D m_Hitbox;
-    Coroutine m_LifetimeCoroutine;
-    int m_FramesElapsed;
+    int m_FramesElapsed = 0;
 
     Attack m_Attack;
 
@@ -26,6 +25,7 @@ public class Hitbox : MonoBehaviour
     Action<GameObject> m_Hit; // f(hit game object)
 
     bool m_IsReady = false;
+    bool m_HitboxAppearedOnce = false;
 
     void Start()
     {
@@ -54,9 +54,6 @@ public class Hitbox : MonoBehaviour
         m_IsTarget = isTarget;
         m_Hit = hit;
 
-        m_FramesElapsed = 0;
-        m_LifetimeCoroutine = StartCoroutine(Sync.Delay(m_Lifetime, () => { End(); }));
-
         SetPosition();
         m_IsReady = true;
     }
@@ -64,7 +61,6 @@ public class Hitbox : MonoBehaviour
     // Hitboxes are responsible for destroying themselves as they may outlast the ability that created them. The ability caller may still destroy them early by called Interrupt().
     public void Interrupt()
     {
-        StopCoroutine(m_LifetimeCoroutine);
         End();
     }
 
@@ -74,7 +70,9 @@ public class Hitbox : MonoBehaviour
             return;
         }
 
-        m_FramesElapsed++;
+        if (m_FramesElapsed++ >= m_Lifetime && m_HitboxAppearedOnce) {
+            End();
+        }
     }
 
     void FixedUpdate()
@@ -85,6 +83,8 @@ public class Hitbox : MonoBehaviour
 
         CheckForHits();
         SetPosition();
+
+        m_HitboxAppearedOnce = true;
     }
 
     void CheckForHits()

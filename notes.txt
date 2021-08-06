@@ -1,8 +1,5 @@
 todo
-    break up code into a client-server sort of format. client just sends input and the server produces commands.
-
-    heavy attack
-    attacker stun
+    refactor attacks to avoid repeated code
     guard and blocking
     dash
     decide what goes in the ability system and what doesn't (implement silence statuses) - double jump?
