@@ -1,6 +1,5 @@
 todo
-    refactor attacks to avoid repeated code
-    guard and blocking
+    refactor hit stun and blcok stun to different location probably
     dash
     decide what goes in the ability system and what doesn't (implement silence statuses) - double jump?
 
@@ -27,13 +26,11 @@ game flow
     force show scoreboard, freeze all players
 
 
+totally invincible during hit stun?
 
 
-abilities can only be used when grounded (except block, light, strong, double jump)
 
-attack with multiple hitboxes: pierce count shared by abilility rather than per-hitbox
-how to handle abilities that may have multiple attacks on the same screeen at once? or rather, just how do you reset an ability anyway
-an ability may start before its previous invocation has completed. where is ability state being tracked? (i guess instantiate ability, which instantiates hitboxes. in order to instantiate something, it must be a unity class)
+
 
 elementalist https://www.youtube.com/watch?v=4JMx2fWfuD8
 novice https://www.youtube.com/watch?v=iY_swqviRk0
@@ -46,23 +43,10 @@ shaolin/counter https://www.youtube.com/watch?v=YG4tUOohzkk
 
 
 
-block problem
-on being stunned, all abilities (including block) are interrupted. but blocking should NOT be interrupted on hit. overriding the interrupt to just not stop the block would be wierd and unintuitive
-instead on hitting a blocked enemy, just do nothing except deal damage? hmm? how long is block stun anyway?
-should attacks be responsible for inflicting the block stun?
-what if an attack is unblockable? are all attacks blockable?
-(in regular games, if you block, you still enter hit stun, just for a shorter time. in windslayer is seems that you aren't stunned at all, you just take lower damage and continue the block)
 
-totally invincible during hit stun?
+blocking perhaps deviates from the original game: when you're hit whilst blocking, you enter block stun, which interrupts your block. in windslayer it seems like you didn't get stunned at all.
 
-
-
-
-
-
-air strong attack (can flip directions?) interrupt if hit ground?
-
-
+landing on the ground whilst doing an air move: the air move continues on the ground
 
 attack used: startup -> active -> recovery
                                -> OR INSTEAD attacker stun (if you are airborne, hit an enemy and they don't block it. such airborne hits are only possible if you're using a light/strong attack)

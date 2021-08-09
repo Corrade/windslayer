@@ -33,11 +33,6 @@ public abstract class Ability : MonoBehaviour
         End();
     }
 
-    protected virtual void End() {
-        m_PlayerStatusManager.ClearStatus(Status.Casting);
-        Destroy(gameObject);
-    }
-
     protected virtual IEnumerator Run()
     {
         OnStartUpBegin();
@@ -74,4 +69,9 @@ public abstract class Ability : MonoBehaviour
     protected virtual void OnRecoveryBegin() {}
     protected virtual void RecoveryUpdate(int frameNum) {}
     protected virtual void OnRecoveryEnd() {}
+
+    protected virtual void End() {
+        m_PlayerStatusManager.ClearStatus(Status.Casting);
+        Destroy(gameObject);
+    }
 }

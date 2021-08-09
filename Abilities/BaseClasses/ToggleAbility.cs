@@ -33,7 +33,12 @@ public abstract class ToggleAbility : Ability
         End();
     }
 
-    protected virtual void OnStartUpBegin() {
-        m_PlayerStatusManager.StartStatus(Status.Casting, 999);
+    protected override void OnStartUpBegin() {
+        m_PlayerStatusManager.StartStatus(Status.Casting, 99999);
+    }
+
+    protected override void End() {
+        m_PlayerStatusManager.ClearStatus(Status.Casting);
+        base.End();
     }
 }
