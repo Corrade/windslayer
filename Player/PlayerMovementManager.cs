@@ -126,7 +126,18 @@ public class PlayerMovementManager : MonoBehaviour
             GroundCheckDistance,
             LayerMask.GetMask("Obstruction", "Platform")
         )) {
-            if (hit.collider == null || m_PlatformsRecentlyDropped.Contains(hit.collider)) {
+            // Ignore if nothing was collided with
+            if (hit.collider == null) {
+                continue;
+            }
+
+            // Ignore climbing back onto any platform recently dropped from
+            if (m_PlatformsRecentlyDropped.Contains(hit.collider)) {
+                continue;
+            }
+
+            // The collider is a line spanning the whole height of the character. Hence, it could incorrectly detect a platform that only the character's mid/upper body is colliding with, which would be considered a ceiling.
+            if (IsCeiling(hit.normal)) {
                 continue;
             }
 
@@ -213,6 +224,8 @@ public class PlayerMovementManager : MonoBehaviour
                 StopJump();
             }
         }
+
+        Debugger.DrawRay(m_RB2D.position, CandidateVelocity.normalized, Color.blue, 1f);
     }
 
     float GetMoveInput()
@@ -337,8 +350,13 @@ public class PlayerMovementManager : MonoBehaviour
                     }
                 }
             } else {
-                // Moving from air -> ground: stop motion
-                CandidateVelocity = Vector2.zero;
+                if (!IsCeiling(hit.normal) && CandidateVelocity.y > 0 && IsMovingInto(CandidateVelocity, hit.normal)) {
+                    // Running into a non-ceiling ground while rising in the air: ignore horizontal movement and just keep rising
+                    CandidateVelocity = new Vector2(0f, CandidateVelocity.y);
+                } else {
+                    // Moving from air -> ground: stop motion
+                    CandidateVelocity = Vector2.zero;
+                }
             }
         }
     }
@@ -380,6 +398,12 @@ public class PlayerMovementManager : MonoBehaviour
     bool IsTooSteep(Vector2 normal)
     {
         return Vector2.Dot(normal, Vector2.up) < Mathf.Cos(MaximumGroundAngle * Mathf.Deg2Rad);
+    }
+
+    // Given the normal of a ground, returns whether or not it's a ceiling
+    bool IsCeiling(Vector2 normal)
+    {
+        return normal.y < 0;
     }
 
     // Returns whether or not the character is in the air and moving upwards
