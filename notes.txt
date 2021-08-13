@@ -1,7 +1,9 @@
 todo
     refactor hit stun and blcok stun to different location probably
-    dash
-    decide what goes in the ability system and what doesn't (implement silence statuses) - double jump?
+
+
+
+
 
 ui
     main menu
@@ -11,6 +13,7 @@ ui
         health and mana
         skills
         chatbox
+    skill menu
     tab scoreboard (join teams, leave arena)
     character menu (skills and stats; drag skills to hud skills)
     settings menu
@@ -26,8 +29,12 @@ game flow
     force show scoreboard, freeze all players
 
 
+
 totally invincible during hit stun?
 
+
+
+https://github.com/MFatihMAR/Game-Networking-Resources
 
 
 

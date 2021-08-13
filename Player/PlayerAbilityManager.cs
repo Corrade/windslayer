@@ -21,6 +21,9 @@ public class PlayerAbilityManager : MonoBehaviour
     [Tooltip("Block")]
     public Block BlockPrefab;
 
+    [Tooltip("Dash")]
+    public Dash DashPrefab;
+
     PlayerInputManager m_PlayerInputManager;
     PlayerStatusManager m_PlayerStatusManager;
     PlayerMovementManager m_PlayerMovementManager;
@@ -86,6 +89,14 @@ public class PlayerAbilityManager : MonoBehaviour
             Ability instance = Instantiate(BlockPrefab, transform);
             m_ActiveAbilities.Add(instance);
             instance.Initialise(gameObject);
+        }
+
+        if (m_PlayerInputManager.GetInputDown("dash", true)) {
+            if (m_PlayerMovementManager.IsGrounded) {
+                Ability instance = Instantiate(DashPrefab, transform);
+                m_ActiveAbilities.Add(instance);
+                instance.Initialise(gameObject);
+            }
         }
     }
 
