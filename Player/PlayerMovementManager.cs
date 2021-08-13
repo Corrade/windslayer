@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -54,10 +55,15 @@ public class PlayerMovementManager : MonoBehaviour
 
     // Passed to m_RB2D.MovePosition() at the end of FixedUpdate() as MovePosition() is resolved during the next physics update
     Vector2 m_CandidatePosition;
-    int m_JumpCounter;
-    float m_JumpTime;
-    bool m_Jumping;
+    int m_JumpCounter = 0;
+    float m_JumpTime = 0f;
+    bool m_Jumping = false;
     float m_PreviousMoveInput;
+
+    Func<Vector2, bool, bool, Vector2, Vector2> m_OverrideVelocity; // f(CandidateVelocity, IsGrounded, IsFacingLeft, m_GroundNormal) -> velocity to replace the regular velocity
+    int m_OverrideVelocityFramesRemaining = 0;
+    bool m_OverrideVelocityRanOnce = true;
+    bool m_OverrideVelocityJustExpired = false;
 
     void Start()
     {
@@ -65,10 +71,12 @@ public class PlayerMovementManager : MonoBehaviour
         m_RB2D = GetComponent<Rigidbody2D>();
         m_PlayerInputManager = GetComponent<PlayerInputManager>();
         m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
-        m_JumpCounter = 0;
-        m_JumpTime = 0f;
-        m_Jumping = false;
         m_PlatformsRecentlyDropped = new List<Collider2D>();
+    }
+
+    void Update()
+    {
+        OverrideVelocityTick();
     }
 
     void FixedUpdate()
@@ -80,9 +88,11 @@ public class PlayerMovementManager : MonoBehaviour
     
         m_CandidatePosition = m_RB2D.position;
 
+        CheckOverrideVelocity();
         GroundCheck();
         DropPlatformCheck();
         ProposeVelocity();
+        OverrideVelocity(); // should immediately undo effect afterwards
         AdjustVelocityForObstructions();
 
         // Move along the final CandidateVelocity
@@ -94,12 +104,32 @@ public class PlayerMovementManager : MonoBehaviour
             m_RB2D.MovePosition(m_CandidatePosition);
         }
 
-        if (CandidateVelocity.x < 0) {
-            IsFacingLeft = true;
-            transform.localScale = new Vector3(-1f, 1f, 1f);
-        } else if (CandidateVelocity.x > 0) {
-            IsFacingLeft = false;
-            transform.localScale = new Vector3(1f, 1f, 1f);
+        SetFacingDirection();
+    }
+
+    // Set the velocity of the player to the result of the given function for the given amount of frames, ignoring regular velocity calculations (normal input processing, gravity). The function is guaranteed to override the velocity in at least one calculation.
+    public void SetOverrideVelocity(Func<Vector2, bool, bool, Vector2, Vector2> func, int frames) {
+        m_OverrideVelocity = func;
+        m_OverrideVelocityFramesRemaining = frames;
+        m_OverrideVelocityRanOnce = false;
+    }
+
+    void OverrideVelocityTick()
+    {
+        if (m_OverrideVelocityFramesRemaining > 0) {
+            m_OverrideVelocityFramesRemaining--;
+
+            if (m_OverrideVelocityFramesRemaining == 0) {
+                m_OverrideVelocityJustExpired = true;
+            }
+        }
+    }
+
+    // Reset the velocity to remove the effects of m_OverrideVelocity() if itjust expired
+    void CheckOverrideVelocity() {
+        if (m_OverrideVelocityJustExpired && m_OverrideVelocityRanOnce) {
+            m_OverrideVelocityJustExpired = false;
+            CandidateVelocity = Vector2.zero;
         }
     }
 
@@ -172,7 +202,7 @@ public class PlayerMovementManager : MonoBehaviour
         }
     }
 
-    // Sets CandidateVelocity based on input and grounding
+    // Set CandidateVelocity based on input and grounding
     void ProposeVelocity()
     {
         float moveInput = GetMoveInput();
@@ -224,8 +254,6 @@ public class PlayerMovementManager : MonoBehaviour
                 StopJump();
             }
         }
-
-        Debugger.DrawRay(m_RB2D.position, CandidateVelocity.normalized, Color.blue, 1f);
     }
 
     float GetMoveInput()
@@ -295,6 +323,15 @@ public class PlayerMovementManager : MonoBehaviour
         m_Jumping = false;
     }
 
+    // Override CandidateVelocity if m_OverrideVelocity() has been set and has time remaining
+    void OverrideVelocity()
+    {
+        if (m_OverrideVelocityFramesRemaining > 0 || !m_OverrideVelocityRanOnce) {
+            CandidateVelocity = m_OverrideVelocity(CandidateVelocity, IsGrounded, IsFacingLeft, m_GroundNormal);
+            m_OverrideVelocityRanOnce = true;
+        }
+    }
+
     // Checks for obstructions and sets m_CandidatePosition and CandidateVelocity appropriately if an obstruction is detected
     void AdjustVelocityForObstructions()
     {
@@ -361,6 +398,16 @@ public class PlayerMovementManager : MonoBehaviour
         }
     }
 
+    void SetFacingDirection() {
+        if (CandidateVelocity.x < 0) {
+            IsFacingLeft = true;
+            transform.localScale = new Vector3(-1f, 1f, 1f);
+        } else if (CandidateVelocity.x > 0) {
+            IsFacingLeft = false;
+            transform.localScale = new Vector3(1f, 1f, 1f);
+        }
+    }
+
     // Returns whether or not direction is moving into the surface with the given normal. Assumes both parameters are normalized.
     bool IsMovingInto(Vector2 direction, Vector2 normal)
     {
@@ -369,13 +416,13 @@ public class PlayerMovementManager : MonoBehaviour
     }
 
     // Returns the vector going right along the surface with the given normal
-    Vector2 VectorAlongSurface(Vector2 normal)
+    public static Vector2 VectorAlongSurface(Vector2 normal)
     {
         return PerpendicularClockwise(normal).normalized;
     }
 
     // Returns the vector going down along the surface with the given normal
-    Vector2 VectorDownSurface(Vector2 normal)
+    public static Vector2 VectorDownSurface(Vector2 normal)
     {
         if (normal.x <= 0) { // Surface is like /
             return PerpendicularAntiClockwise(normal).normalized;
@@ -384,12 +431,12 @@ public class PlayerMovementManager : MonoBehaviour
         }
     }
 
-    Vector2 PerpendicularAntiClockwise(Vector2 vec)
+    public static Vector2 PerpendicularAntiClockwise(Vector2 vec)
     {
         return new Vector2(-vec.y, vec.x);
     }
 
-    Vector2 PerpendicularClockwise(Vector2 vec)
+    public static Vector2 PerpendicularClockwise(Vector2 vec)
     {
         return new Vector2(vec.y, -vec.x);
     }

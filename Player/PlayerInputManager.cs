@@ -60,6 +60,7 @@ public class PlayerInputManager : MonoBehaviour
         m_Binds.Add("light_attack", new Key(KeyCode.Z, false));
         m_Binds.Add("strong_attack", new Key(KeyCode.C, false));
         m_Binds.Add("block", new Key(KeyCode.X, false));
+        m_Binds.Add("dash", new Key(KeyCode.V, false));
     }
 
     // Problem: normally, you can't reliably call GetKeyDown() or GetKeyUp() from FixedUpdate() since those events may fire off between fixed updates.

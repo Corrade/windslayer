@@ -25,7 +25,7 @@ public enum Status
     // A confused player has their left and right movement keybinds swapped
     Confused,
 
-    // An invincible player cannot be damaged (even by DoT effects applied before the invincibility), but may be hit, healed and knocked back etc.
+    // An invincible player cannot be damaged (even by DoT effects applied before the invincibility), but may be targeted (hit, healed and knocked back etc.)
     Invincible,
 
     // An intangible player cannot be targeted but may still take damage from effects applied before the intangibility
