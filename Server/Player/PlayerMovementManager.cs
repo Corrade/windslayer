@@ -11,6 +11,8 @@ using Windslayer;
 
 namespace Windslayer.Server
 {
+    // Receiving movement-related input from the associated player and communicating it
+
     [RequireComponent(typeof(PlayerConnectionManager)), RequireComponent(typeof(PlayerInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(BoxCollider2D)), RequireComponent(typeof(Rigidbody2D))]
     public class PlayerMovementManager : MonoBehaviour
     {
@@ -51,10 +53,11 @@ namespace Windslayer.Server
         public bool IsGrounded { get; private set; }
         public bool IsFacingLeft { get; private set; }
 
-        BoxCollider2D m_CollisionCollider;
-        Rigidbody2D m_RB2D;
+        PlayerConnectionManager m_PlayerConnectionManager;
         PlayerInputManager m_PlayerInputManager;
         PlayerStatusManager m_PlayerStatusManager;
+        BoxCollider2D m_CollisionCollider;
+        Rigidbody2D m_RB2D;
 
         Vector2 m_GroundNormal;
         Collider2D m_GroundCollider;
@@ -75,15 +78,11 @@ namespace Windslayer.Server
 
         void Awake()
         {
-            m_CollisionCollider = GetComponent<BoxCollider2D>();
-            m_RB2D = GetComponent<Rigidbody2D>();
+            m_PlayerConnectionManager = GetComponent<PlayerConnectionManager>();
             m_PlayerInputManager = GetComponent<PlayerInputManager>();
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
-        }
-
-        void Update()
-        {
-            OverrideVelocityTick();
+            m_CollisionCollider = GetComponent<BoxCollider2D>();
+            m_RB2D = GetComponent<Rigidbody2D>();
         }
 
         void FixedUpdate()
@@ -95,7 +94,7 @@ namespace Windslayer.Server
         
             m_CandidatePosition = m_RB2D.position;
 
-            CheckOverrideVelocity();
+            OverrideVelocityTick();
             GroundCheck();
             DropPlatformCheck();
             ProposeVelocity();
@@ -109,6 +108,8 @@ namespace Windslayer.Server
                 // Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition) + ", CandidateVelocity = " + Debugger.Vector2Full(CandidateVelocity));
                 // Debugger.DrawRay(m_RB2D.position, CandidateVelocity * Time.fixedDeltaTime, Color.blue, 1f);
                 m_RB2D.MovePosition(m_CandidatePosition);
+
+                // transmit
             }
 
             SetFacingDirection();
@@ -130,10 +131,7 @@ namespace Windslayer.Server
                     m_OverrideVelocityJustExpired = true;
                 }
             }
-        }
 
-        // Reset the velocity to remove the effects of m_OverrideVelocity() if it just expired
-        void CheckOverrideVelocity() {
             if (m_OverrideVelocityJustExpired && m_OverrideVelocityRanOnce) {
                 m_OverrideVelocityJustExpired = false;
                 CandidateVelocity = Vector2.zero;
@@ -257,7 +255,7 @@ namespace Windslayer.Server
             if (m_Jumping) {
                 HoldJump();
 
-                if (m_PlayerInputManager.GetInputUp("jump", false)) {
+                if (!GetJumpInput()) {
                     StopJump();
                 }
             }
@@ -284,7 +282,7 @@ namespace Windslayer.Server
                 return false;
             }
 
-            return m_PlayerInputManager.GetInputHeld("drop");
+            return m_PlayerInputManager.IsActive(InputIDs.Drop);
         }
 
         bool GetJumpInput()
@@ -293,7 +291,7 @@ namespace Windslayer.Server
                 return false;
             }
 
-            return m_PlayerInputManager.GetInputDown("jump", false);
+            return m_PlayerInputManager.IsActive(InputIDs.Jump);
         }
 
         void StartJump()
@@ -371,7 +369,7 @@ namespace Windslayer.Server
                     continue;
                 }
 
-                Debugger.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
+                Debug.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
                 // Debugger.DrawRay(hit.point, VectorAlongSurface(hit.normal), Color.blue, 1f);
 
                 // Snap to the obstruction

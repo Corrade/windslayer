@@ -100,7 +100,7 @@ namespace Windslayer.Server
 
         Dictionary<Status, StatusInfo> m_Statuses;
 
-        void Start()
+        void Awake()
         {
             m_Statuses = new Dictionary<Status, StatusInfo>();
 
@@ -109,7 +109,7 @@ namespace Windslayer.Server
             }
         }
 
-        void Update()
+        void FixedUpdate()
         {
             // Consider script execution order
             foreach (KeyValuePair<Status, StatusInfo> entry in m_Statuses) {

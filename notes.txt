@@ -158,3 +158,8 @@ networking
 
     always send inputs, not position
     not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
+
+    
+    During each tick, the server processes incoming user commands, runs a physical simulation step, checks the game rules, and updates all object states.
+
+

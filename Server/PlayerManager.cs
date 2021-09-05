@@ -43,7 +43,7 @@ namespace Windslayer.Server
         {
             PlayerConnectionManager player = Instantiate(playerPrefab, Vector2.zero, Quaternion.identity) as PlayerConnectionManager;
             player.ID = e.Client.ID;
-            player.client = e.Client;
+            player.Client = e.Client;
             player.XmlServer = XmlServer;
 
             players.Add(e.Client, player);

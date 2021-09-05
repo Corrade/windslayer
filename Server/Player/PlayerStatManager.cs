@@ -76,7 +76,7 @@ namespace Windslayer.Server
 
         PlayerStatusManager m_PlayerStatusManager;
 
-        void Start()
+        void Awake()
         {
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
 

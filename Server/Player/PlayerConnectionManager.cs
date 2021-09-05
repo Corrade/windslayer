@@ -14,7 +14,7 @@ namespace Windslayer.Server
     public class PlayerConnectionManager : MonoBehaviour
     {
         public ushort ID { get; set; }
-        public IClient client { get; set; }
+        public IClient Client { get; set; }
         public XmlUnityServer XmlServer { get; set; }
     }
 }
