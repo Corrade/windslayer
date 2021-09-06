@@ -98,16 +98,16 @@ namespace Windslayer.Server
             }
         }
 
-        Dictionary<Status, StatusInfo> m_Statuses;
+        Dictionary<Status, StatusInfo> m_Statuses = new Dictionary<Status, StatusInfo>();
 
+        /*
         void Awake()
         {
-            m_Statuses = new Dictionary<Status, StatusInfo>();
-
             foreach (Status status in Enum.GetValues(typeof(Status))) {
                 m_Statuses[status] = new StatusInfo();
             }
         }
+        */
 
         void FixedUpdate()
         {

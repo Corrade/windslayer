@@ -108,15 +108,15 @@ namespace Windslayer.Server
                 // Debug.Log("Moving from " + Debugger.Vector2Full(m_RB2D.position) + " -> " + Debugger.Vector2Full(m_CandidatePosition) + ", CandidateVelocity = " + Debugger.Vector2Full(CandidateVelocity));
                 // Debugger.DrawRay(m_RB2D.position, CandidateVelocity * Time.fixedDeltaTime, Color.blue, 1f);
                 m_RB2D.MovePosition(m_CandidatePosition);
-
-                // transmit
             }
 
             SetFacingDirection();
+            Broadcast();
         }
 
         // Set the velocity of the player to the result of the given function for the given amount of frames, ignoring regular velocity calculations (normal input processing, gravity). The function is guaranteed to override the velocity in at least one calculation.
-        public void SetOverrideVelocity(Func<Vector2, bool, bool, Vector2, Vector2> func, int frames) {
+        public void SetOverrideVelocity(Func<Vector2, bool, bool, Vector2, Vector2> func, int frames)
+        {
             m_OverrideVelocity = func;
             m_OverrideVelocityFramesRemaining = frames;
             m_OverrideVelocityRanOnce = false;
@@ -403,13 +403,30 @@ namespace Windslayer.Server
             }
         }
 
-        void SetFacingDirection() {
+        void SetFacingDirection()
+        {
             if (CandidateVelocity.x < 0) {
                 IsFacingLeft = true;
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             } else if (CandidateVelocity.x > 0) {
                 IsFacingLeft = false;
                 transform.localScale = new Vector3(1f, 1f, 1f);
+            }
+        }
+
+        void Broadcast()
+        {
+            using (DarkRiftWriter writer = DarkRiftWriter.Create())
+            {
+                writer.Write(m_PlayerConnectionManager.ClientID);
+                writer.Write(m_CandidatePosition.x);
+                writer.Write(m_CandidatePosition.y);
+                writer.Write(IsFacingLeft);
+
+                using (Message message = Message.Create(Tags.MovePlayer, writer)) {
+                    foreach (IClient client in m_PlayerConnectionManager.Server.ClientManager.GetAllClients())
+                        client.SendMessage(message, SendMode.Reliable);
+                }
             }
         }
 

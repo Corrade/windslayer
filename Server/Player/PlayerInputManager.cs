@@ -28,17 +28,17 @@ namespace Windslayer.Server
                 m_InputStates[i] = false;
             }
 
-            m_PlayerConnectionManager.Client.MessageReceived += MessageReceived;
+            m_PlayerConnectionManager.AddInitListener(delegate(object sender, EventArgs e) {
+                m_PlayerConnectionManager.Client.MessageReceived += MessageReceived;
+            });
         }
 
         void MessageReceived(object sender, MessageReceivedEventArgs e)
         {
             using (Message message = e.GetMessage() as Message)
-            {
-                if (message.Tag == Tags.PlayerInput)
-                {
-                    using (DarkRiftReader reader = message.GetReader())
-                    {
+            using (DarkRiftReader reader = message.GetReader()) {
+                if (message.Tag == Tags.PlayerInput) {
+                    while (reader.Position < reader.Length) {
                         ushort inputID = reader.ReadUInt16();
                         m_InputStatesBuffer[inputID] = true;
                     }

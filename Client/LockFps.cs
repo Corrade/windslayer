@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Windslayer.Server
+namespace Windslayer.Client
 {
     public class GameManager : MonoBehaviour
     {

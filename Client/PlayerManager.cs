@@ -1,0 +1,105 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+using DarkRift;
+using DarkRift.Client;
+using DarkRift.Client.Unity;
+
+using Windslayer;
+
+namespace Windslayer.Client
+{
+    public class PlayerManager : MonoBehaviour
+    {
+        [SerializeField]
+        PlayerConnectionManager OtherPlayerPrefab;
+
+        [SerializeField]
+        PlayerConnectionManager ThisPlayerPrefab;
+
+        [SerializeField]
+        MainCamera Cam;
+
+        UnityClient m_Client;
+
+        Dictionary<ushort, PlayerConnectionManager> players = new Dictionary<ushort, PlayerConnectionManager>();
+
+        void Awake()
+        {
+            m_Client = GetComponent<UnityClient>();
+        
+            m_Client.MessageReceived += MessageReceived;
+        }
+
+        void MessageReceived(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage() as Message)
+            {
+                if (message.Tag == Tags.SpawnPlayer) {
+                    SpawnPlayer(sender, e);
+                } else if (message.Tag == Tags.DespawnPlayer) {
+                    DespawnPlayer(sender, e);
+                } else if (message.Tag == Tags.MovePlayer) {
+                    MovePlayer(sender, e);
+                }
+            }
+        }
+
+        void SpawnPlayer(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage())
+            using (DarkRiftReader reader = message.GetReader())
+            {
+                // Multiple players are combined into one message, so loop
+                while (reader.Position < reader.Length)
+                {
+                    ushort ID = reader.ReadUInt16();
+                    Vector3 position = new Vector3(reader.ReadSingle(), reader.ReadSingle());
+
+                    PlayerConnectionManager player;
+
+                    if (ID == m_Client.ID) {
+                        player = Instantiate(ThisPlayerPrefab, position, Quaternion.identity) as PlayerConnectionManager;
+                        Cam.Target = player.transform;
+                    } else {
+                        player = Instantiate(OtherPlayerPrefab, position, Quaternion.identity) as PlayerConnectionManager;
+                    }
+
+                    player.Initialise(m_Client);
+
+                    players.Add(ID, player);
+                }
+            }
+        }
+
+        void DespawnPlayer(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage())
+            using (DarkRiftReader reader = message.GetReader())
+            {
+                ushort ID = reader.ReadUInt16();
+                Destroy(players[ID].gameObject);
+                players.Remove(ID);
+            }
+        }
+
+        void MovePlayer(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage())
+            using (DarkRiftReader reader = message.GetReader())
+            {
+                ushort ID = reader.ReadUInt16();
+                Vector3 position = new Vector3(reader.ReadSingle(), reader.ReadSingle());
+                bool isFacingLeft = reader.ReadBoolean();
+
+                players[ID].gameObject.transform.position = position;
+                if (isFacingLeft) {
+                    players[ID].gameObject.transform.localScale = new Vector3(-1f, 1f, 1f);
+                } else {
+                    players[ID].gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
+                }
+            }
+        }
+    }
+}

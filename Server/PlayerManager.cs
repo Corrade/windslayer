@@ -13,38 +13,36 @@ namespace Windslayer.Server
     public class PlayerManager : MonoBehaviour
     {
         [SerializeField]
-        PlayerConnectionManager playerPrefab;
+        PlayerConnectionManager PlayerPrefab;
         
-        XmlUnityServer XmlServer;
+        XmlUnityServer m_XmlServer;
 
         Dictionary<IClient, PlayerConnectionManager> players = new Dictionary<IClient, PlayerConnectionManager>();
 
         void Awake()
         {
-            XmlServer = GetComponent<XmlUnityServer>();
+            m_XmlServer = GetComponent<XmlUnityServer>();
 
-            if (XmlServer == null)
+            if (m_XmlServer == null)
             {
                 Debug.LogError("Server unassigned in AgarPlayerManager.");
                 Application.Quit();
             }
 
-            if (XmlServer.Server == null)
+            if (m_XmlServer.Server == null)
             {
                 Debug.LogError("Server not open yet - check script execution order for XmlUnityServer.");
                 Application.Quit();
             }
         
-            XmlServer.Server.ClientManager.ClientConnected += ClientConnected;
-            XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
+            m_XmlServer.Server.ClientManager.ClientConnected += ClientConnected;
+            m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
         void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            PlayerConnectionManager player = Instantiate(playerPrefab, Vector2.zero, Quaternion.identity) as PlayerConnectionManager;
-            player.ID = e.Client.ID;
-            player.Client = e.Client;
-            player.XmlServer = XmlServer;
+            PlayerConnectionManager player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity) as PlayerConnectionManager;
+            player.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
 
             players.Add(e.Client, player);
 
