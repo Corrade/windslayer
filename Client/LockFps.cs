@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Windslayer.Client
 {
-    public class GameManager : MonoBehaviour
+    public class LockFps : MonoBehaviour
     {
         void Start()
         {

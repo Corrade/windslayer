@@ -23,7 +23,7 @@ namespace Windslayer.Client
 
         UnityClient m_Client;
 
-        Dictionary<ushort, PlayerConnectionManager> players = new Dictionary<ushort, PlayerConnectionManager>();
+        Dictionary<ushort, PlayerConnectionManager> m_Players = new Dictionary<ushort, PlayerConnectionManager>();
 
         void Awake()
         {
@@ -54,50 +54,44 @@ namespace Windslayer.Client
                 // Multiple players are combined into one message, so loop
                 while (reader.Position < reader.Length)
                 {
-                    ushort ID = reader.ReadUInt16();
-                    Vector3 position = new Vector3(reader.ReadSingle(), reader.ReadSingle());
-
+                    SpawnPlayerMsg msg = reader.ReadSerializable<SpawnPlayerMsg>();
+                    
                     PlayerConnectionManager player;
 
-                    if (ID == m_Client.ID) {
-                        player = Instantiate(ThisPlayerPrefab, position, Quaternion.identity) as PlayerConnectionManager;
+                    if (msg.ClientID == m_Client.ID) {
+                        player = Instantiate(ThisPlayerPrefab, msg.Position, Quaternion.identity) as PlayerConnectionManager;
                         Cam.Target = player.transform;
                     } else {
-                        player = Instantiate(OtherPlayerPrefab, position, Quaternion.identity) as PlayerConnectionManager;
+                        player = Instantiate(OtherPlayerPrefab, msg.Position, Quaternion.identity) as PlayerConnectionManager;
                     }
 
                     player.Initialise(m_Client);
 
-                    players.Add(ID, player);
+                    m_Players.Add(msg.ClientID, player);
                 }
             }
         }
 
         void DespawnPlayer(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage())
-            using (DarkRiftReader reader = message.GetReader())
-            {
-                ushort ID = reader.ReadUInt16();
-                Destroy(players[ID].gameObject);
-                players.Remove(ID);
+            using (Message message = e.GetMessage()) {                    
+                DespawnPlayerMsg msg = message.Deserialize<DespawnPlayerMsg>();
+
+                Destroy(m_Players[msg.ClientID].gameObject);
+                m_Players.Remove(msg.ClientID);
             }
         }
 
         void MovePlayer(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage())
-            using (DarkRiftReader reader = message.GetReader())
-            {
-                ushort ID = reader.ReadUInt16();
-                Vector3 position = new Vector3(reader.ReadSingle(), reader.ReadSingle());
-                bool isFacingLeft = reader.ReadBoolean();
+            using (Message message = e.GetMessage()) {                    
+                MovePlayerMsg msg = message.Deserialize<MovePlayerMsg>();
 
-                players[ID].gameObject.transform.position = position;
-                if (isFacingLeft) {
-                    players[ID].gameObject.transform.localScale = new Vector3(-1f, 1f, 1f);
+                m_Players[msg.ClientID].gameObject.transform.position = msg.Position;
+                if (msg.IsFacingLeft) {
+                    m_Players[msg.ClientID].gameObject.transform.localScale = new Vector3(-1f, 1f, 1f);
                 } else {
-                    players[ID].gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
+                    m_Players[msg.ClientID].gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
                 }
             }
         }

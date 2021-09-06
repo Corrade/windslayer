@@ -5,36 +5,37 @@ using UnityEngine;
 
 namespace Windslayer.Server
 {
+    // BAD IMPLEMENTATION FOR SERVER SYNCING! SHOULD BE BASED ON TICKRATE, NOT FRAMERATE
+
     public class Sync : MonoBehaviour
     {
-        // frameUpdate() takes in the number of frames that have elapsed since the start of this function. This function will therefore take in ints from 0 to (m_FrameTotal - 1).
-        public static IEnumerator Delay(int frameTotal, Action<int> frameUpdate, Action callback)
+        // runPerTick() takes in the number of frames that have elapsed since the start of this function. This function will therefore take in ints from 0 to (m_tickCount - 1).
+        public static IEnumerator Delay(int tickCount, Action<int> runPerTick, Action callback)
         {
-            int framesElapsed = 0;
+            int ticksElapsed = 0;
 
-            while (framesElapsed < frameTotal)
-            {
-                frameUpdate(framesElapsed);
-                framesElapsed++;
+            while (ticksElapsed < tickCount) {
+                runPerTick(ticksElapsed);
+                ticksElapsed++;
                 yield return null;
             }
 
             callback();
         }
 
-        public static IEnumerator Delay(int frameTotal, Action<int> frameUpdate)
+        public static IEnumerator Delay(int tickCount, Action<int> runPerTick)
         {
-            yield return Delay(frameTotal, frameUpdate, () => {});
+            yield return Delay(tickCount, runPerTick, () => {});
         }
 
-        public static IEnumerator Delay(int frameTotal, Action callback)
+        public static IEnumerator Delay(int tickCount, Action callback)
         {
-            yield return Delay(frameTotal, (int x) => {}, callback);
+            yield return Delay(tickCount, (int x) => {}, callback);
         }
 
-        public static IEnumerator Delay(int frameTotal)
+        public static IEnumerator Delay(int tickCount)
         {
-            yield return Delay(frameTotal, (int x) => {});
+            yield return Delay(tickCount, (int x) => {});
         }
     }
 }

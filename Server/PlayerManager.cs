@@ -19,7 +19,7 @@ namespace Windslayer.Server
         
         XmlUnityServer m_XmlServer;
 
-        Dictionary<IClient, PlayerConnectionManager> players = new Dictionary<IClient, PlayerConnectionManager>();
+        Dictionary<IClient, PlayerConnectionManager> m_Players = new Dictionary<IClient, PlayerConnectionManager>();
 
         void Awake()
         {
@@ -48,39 +48,33 @@ namespace Windslayer.Server
 
             // consider instantiating as inactive and then setting active, ensuring scripts will have conn initialised
 
-            players.Add(e.Client, player);
+            m_Players.Add(e.Client, player);
 
             // Broadcast the new player to all existing players
-            using (DarkRiftWriter w = DarkRiftWriter.Create()) // Use 'using' for performance reasons
-            {
-                w.Write(e.Client.ID);
-                w.Write(0f);
-                w.Write(0f);
-
-                using (Message m = Message.Create(Tags.SpawnPlayer, w)) {
-                    foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
-                        client.SendMessage(m, SendMode.Reliable);
-                    }
+            using (Message msg = Message.Create(
+                Tags.SpawnPlayer,
+                new SpawnPlayerMsg(e.Client.ID, Vector3.zero)
+            )) {
+                foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
+                    client.SendMessage(msg, SendMode.Reliable);
                 }
             }
 
             // Broadcast all players (including the new player itself) to the new player
             using (DarkRiftWriter w = DarkRiftWriter.Create()) {
-                foreach (PlayerConnectionManager p in players.Values) {
-                    w.Write(p.ClientID);
-                    w.Write(0f);
-                    w.Write(0f);
+                foreach (PlayerConnectionManager p in m_Players.Values) {
+                    w.Write(new SpawnPlayerMsg(p.ClientID, Vector3.zero));
                 }
 
-                using (Message m = Message.Create(Tags.SpawnPlayer, w)) {
-                    e.Client.SendMessage(m, SendMode.Reliable);
+                using (Message msg = Message.Create(Tags.SpawnPlayer, w)) {
+                    e.Client.SendMessage(msg, SendMode.Reliable);
                 }
             }
         }
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            players.Remove(e.Client);
+            m_Players.Remove(e.Client);
         }
     }
 }

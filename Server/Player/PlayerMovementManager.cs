@@ -426,16 +426,12 @@ namespace Windslayer.Server
 
         void Broadcast()
         {
-            using (DarkRiftWriter writer = DarkRiftWriter.Create())
-            {
-                writer.Write(m_PlayerConnectionManager.ClientID);
-                writer.Write(m_CandidatePosition.x);
-                writer.Write(m_CandidatePosition.y);
-                writer.Write(IsFacingLeft);
-
-                using (Message message = Message.Create(Tags.MovePlayer, writer)) {
-                    foreach (IClient client in m_PlayerConnectionManager.Server.ClientManager.GetAllClients())
-                        client.SendMessage(message, SendMode.Reliable);
+            using (Message msg = Message.Create(
+                Tags.MovePlayer,
+                new MovePlayerMsg(m_PlayerConnectionManager.ClientID, m_CandidatePosition, IsFacingLeft)
+            )) {
+                foreach (IClient client in m_PlayerConnectionManager.Server.ClientManager.GetAllClients()) {
+                    client.SendMessage(msg, SendMode.Reliable);
                 }
             }
         }
