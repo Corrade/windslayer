@@ -1,10 +1,6 @@
 todo
     refactor hit stun and blcok stun to different location probably
 
-
-
-
-
 ui
     main menu
     server browser
