@@ -7,7 +7,7 @@ namespace Windslayer.Client
     public class MainCamera : MonoBehaviour
     {
         [Tooltip("Camera speed")]
-        public float Speed;
+        public float Speed = 5f;
 
         public Transform Target { get; set; }
 

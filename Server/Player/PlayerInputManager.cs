@@ -16,8 +16,8 @@ namespace Windslayer.Server
     {
         PlayerConnectionManager m_PlayerConnectionManager;
 
-        List<bool> m_InputStatesBuffer = new List<bool>(InputIDs.Count);
-        List<bool> m_InputStates = new List<bool>(InputIDs.Count);
+        List<bool> m_InputStatesBuffer = new List<bool>( new bool[InputIDs.Count] );
+        List<bool> m_InputStates = new List<bool>( new bool[InputIDs.Count] );
 
         void Awake()
         {

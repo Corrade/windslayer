@@ -230,7 +230,7 @@ namespace Windslayer.Server
                     if (IsGrounded && IsTooSteep(m_GroundNormal)) {
                         // Sliding down a steep surface
                         CandidateVelocity += VectorDownSurface(m_GroundNormal) * GravityDownForce * Time.fixedDeltaTime;
-                        Debug.Log("Sliding");
+                        // Debug.Log("Sliding");
                     } else {
                         // Air strafing
                         float input = moveInput * AirStrafeSpeed;
@@ -369,7 +369,7 @@ namespace Windslayer.Server
                     continue;
                 }
 
-                Debug.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
+                // Debug.Log("Obstructed by " + hit.collider.name + " with CandidateVelocity=" + CandidateVelocity.normalized + ", normal=" + hit.normal + ", Dot()=" + Vector2.Dot(-hit.normal, CandidateVelocity.normalized) + ", IsGrounded=" + IsGrounded + ", IsTooSteep()=" + IsTooSteep(hit.normal));
                 // Debugger.DrawRay(hit.point, VectorAlongSurface(hit.normal), Color.blue, 1f);
 
                 // Snap to the obstruction

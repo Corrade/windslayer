@@ -37,7 +37,7 @@ namespace Windslayer.Client
         {
             using (DarkRiftWriter writer = DarkRiftWriter.Create()) {
                 foreach (KeyValuePair<ushort, KeyCode> entry in m_Binds) {
-                    if (Input.GetKeyDown(entry.Value)) {
+                    if (Input.GetKey(entry.Value)) {
                         writer.Write(entry.Key);
                     }
                 }

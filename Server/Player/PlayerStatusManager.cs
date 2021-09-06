@@ -100,14 +100,12 @@ namespace Windslayer.Server
 
         Dictionary<Status, StatusInfo> m_Statuses = new Dictionary<Status, StatusInfo>();
 
-        /*
         void Awake()
         {
             foreach (Status status in Enum.GetValues(typeof(Status))) {
                 m_Statuses[status] = new StatusInfo();
             }
         }
-        */
 
         void FixedUpdate()
         {
