@@ -17,6 +17,7 @@ namespace Windslayer.Server
         PlayerConnectionManager m_PlayerConnectionManager;
 
         List<bool> m_InputStatesBuffer = new List<bool>( new bool[InputIDs.Count] );
+        List<bool> m_JustActivatedInputStates = new List<bool>( new bool[InputIDs.Count] );
         List<bool> m_InputStates = new List<bool>( new bool[InputIDs.Count] );
 
         void Awake()
@@ -25,6 +26,7 @@ namespace Windslayer.Server
 
             for (int i = 0; i < m_InputStatesBuffer.Count; ++i) {
                 m_InputStatesBuffer[i] = false;
+                m_JustActivatedInputStates[i] = false;
                 m_InputStates[i] = false;
             }
 
@@ -50,7 +52,11 @@ namespace Windslayer.Server
         void FixedUpdate()
         {
             for (int i = 0; i < m_InputStatesBuffer.Count; ++i) {
-                m_InputStates[i] = m_InputStatesBuffer[i];
+                bool oldInputState = m_InputStates[i];
+                bool newInputState = m_InputStatesBuffer[i];
+
+                m_JustActivatedInputStates[i] = !oldInputState && newInputState;
+                m_InputStates[i] = newInputState;
                 m_InputStatesBuffer[i] = false;
             }
         }
@@ -68,6 +74,11 @@ namespace Windslayer.Server
             }
 
             return res;
+        }
+
+        public bool IsJustActivated(ushort inputID)
+        {
+            return m_JustActivatedInputStates[inputID];
         }
 
         public bool IsActive(ushort inputID)

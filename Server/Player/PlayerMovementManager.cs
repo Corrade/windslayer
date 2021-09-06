@@ -89,6 +89,7 @@ namespace Windslayer.Server
         {
             if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
                 // But do not reset CandidateVelocity as to preserve it once these statuses clear
+                StopJump();
                 return;
             }
         
@@ -197,7 +198,7 @@ namespace Windslayer.Server
         // Temporarily ignore ground checks for the current platform if the player is inputting to drop
         void DropPlatformCheck()
         {
-            if (IsGrounded && GetDropInput() && m_GroundCollider.gameObject.layer == LayerMask.NameToLayer("Platform")) {
+            if (IsGrounded && IsDropActive() && m_GroundCollider.gameObject.layer == LayerMask.NameToLayer("Platform")) {
                 Collider2D currentPlatform = m_GroundCollider;
                 m_PlatformsRecentlyDropped.Add(currentPlatform);
 
@@ -219,12 +220,12 @@ namespace Windslayer.Server
                 CandidateVelocity = input * VectorAlongSurface(m_GroundNormal);
 
                 // Grounded jump
-                if (GetJumpInput()) {
+                if (IsJumpJustActivated()) {
                     StartJump();
                 }
             } else {
                 // Air jump
-                if (GetJumpInput() && m_JumpCounter < MaxJumps) {
+                if (IsJumpJustActivated() && m_JumpCounter < MaxJumps) {
                     StartJump();
                 } else {
                     if (IsGrounded && IsTooSteep(m_GroundNormal)) {
@@ -255,7 +256,7 @@ namespace Windslayer.Server
             if (m_Jumping) {
                 HoldJump();
 
-                if (!GetJumpInput()) {
+                if (!IsJumpActive()) {
                     StopJump();
                 }
             }
@@ -276,7 +277,7 @@ namespace Windslayer.Server
             return m_PlayerInputManager.GetMoveInput();
         }
 
-        bool GetDropInput()
+        bool IsDropActive()
         {
             if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
                 return false;
@@ -285,13 +286,22 @@ namespace Windslayer.Server
             return m_PlayerInputManager.IsActive(InputIDs.Drop);
         }
 
-        bool GetJumpInput()
+        bool IsJumpActive()
         {
             if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
                 return false;
             }
 
             return m_PlayerInputManager.IsActive(InputIDs.Jump);
+        }
+
+        bool IsJumpJustActivated()
+        {
+            if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
+                return false;
+            }
+
+            return m_PlayerInputManager.IsJustActivated(InputIDs.Jump);
         }
 
         void StartJump()
