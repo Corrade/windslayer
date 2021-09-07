@@ -30,9 +30,11 @@ namespace Windslayer.Server
                 m_InputStates[i] = false;
             }
 
-            m_PlayerConnectionManager.AddInitListener(delegate(object sender, EventArgs e) {
-                m_PlayerConnectionManager.Client.MessageReceived += MessageReceived;
-            });
+            if (m_PlayerConnectionManager.Client == null) {
+                Debug.LogError("A player script executed before PlayerConnectionManager - revise script ordering");
+            }
+
+            m_PlayerConnectionManager.Client.MessageReceived += MessageReceived;
         }
 
         void MessageReceived(object sender, MessageReceivedEventArgs e)
@@ -40,9 +42,11 @@ namespace Windslayer.Server
             using (Message message = e.GetMessage() as Message)
             using (DarkRiftReader reader = message.GetReader()) {
                 if (message.Tag == Tags.PlayerInput) {
-                    while (reader.Position < reader.Length) {
-                        ushort inputID = reader.ReadUInt16();
-                        m_InputStatesBuffer[inputID] = true;
+                    while (reader.Position < reader.Length)
+                    {
+                        PlayerInputMsg msg = reader.ReadSerializable<PlayerInputMsg>();
+
+                        m_InputStatesBuffer[msg.InputID] = true;
                     }
                 }
             }

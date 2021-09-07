@@ -1,5 +1,36 @@
 todo
+    pre-match
+    testing with multiple players
+    respawning
+    spectator cam
+
     refactor hit stun and blcok stun to different location probably
+
+
+spec mode: click on player portrait to spec. keypress to cycle through players. dead players including oneself can be viewed; just goes to their gravestone. click on something to enter freecam, which is the default cam if there are no players or something
+
+gamemodes
+    deathmatch. team with most KO's at the end of the time wins. timer. dying -> spec -> respawn
+
+game flow
+    pre-match
+        join team 1 or 2
+        join spec
+        leave arena
+        setup arena (host only)
+            max players (moves any excess players who've already joined a team into spec)
+            gamemode (implement later)
+                kill limit
+                time limit
+                respawn time
+        start game (must have at least one player on each team)
+    
+    combat
+        upon death, respawn after a while. whilst waiting move into spec
+
+    end condition
+        freeze all players, announce winner, force show scoreboard, transition to pre-match
+
 
 ui
     main menu
@@ -15,14 +46,6 @@ ui
     settings menu
         keybinding
 
-game flow
-    host server (max players, first team to x kills, respawn time)
-    join team buttons, leave arena buttons,
-    wait for host to start game
-    (re)spawn all players, combat. if they die, respawn them after the given respawn time.
-    when the team reaches x kills, end game
-    announce winner
-    force show scoreboard, freeze all players
 
 
 

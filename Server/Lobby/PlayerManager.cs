@@ -25,14 +25,12 @@ namespace Windslayer.Server
         {
             m_XmlServer = GetComponent<XmlUnityServer>();
 
-            if (m_XmlServer == null)
-            {
+            if (m_XmlServer == null) {
                 Debug.LogError("Server unassigned in AgarPlayerManager.");
                 Application.Quit();
             }
 
-            if (m_XmlServer.Server == null)
-            {
+            if (m_XmlServer.Server == null) {
                 Debug.LogError("Server not open yet - check script execution order for XmlUnityServer.");
                 Application.Quit();
             }
@@ -43,12 +41,16 @@ namespace Windslayer.Server
 
         void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            PlayerConnectionManager player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity) as PlayerConnectionManager;
+            PlayerConnectionManager player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity);
+
+            if (player.gameObject.activeSelf) {
+                Debug.LogError("Player should not begin active");
+            }
+
             player.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
-
-            // consider instantiating as inactive and then setting active, ensuring scripts will have conn initialised
-
             m_Players.Add(e.Client, player);
+
+            player.gameObject.SetActive(true);
 
             // Broadcast the new player to all existing players
             using (Message msg = Message.Create(

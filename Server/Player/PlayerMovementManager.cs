@@ -431,7 +431,7 @@ namespace Windslayer.Server
                 new MovePlayerMsg(m_PlayerConnectionManager.ClientID, m_CandidatePosition, IsFacingLeft)
             )) {
                 foreach (IClient client in m_PlayerConnectionManager.Server.ClientManager.GetAllClients()) {
-                    client.SendMessage(msg, SendMode.Reliable);
+                    client.SendMessage(msg, SendMode.Unreliable);
                 }
             }
         }

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Windslayer.Server
+namespace Windslayer
 {
     // BAD IMPLEMENTATION FOR SERVER SYNCING! SHOULD BE BASED ON TICKRATE, NOT FRAMERATE
 

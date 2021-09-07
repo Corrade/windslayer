@@ -16,16 +16,16 @@ namespace Windslayer.Server
         [Tooltip("Team number")]
         public int Team = 0;
 
-        public int MaxHealth { get; private set; }
-        public int MaxMana { get; private set; }
-        public int Power { get; private set; }
-        public int Defence { get; private set; }
+        public int MaxHealth { get; private set; } = 100;
+        public int MaxMana { get; private set; } = 100;
+        public int Power { get; private set; } = 10;
+        public int Defence { get; private set; } = 10;
 
         public float Health { get; private set; }
         public float Mana { get; private set; }
-        public int Kills { get; private set; }
-        public int Deaths { get; private set; }
-        public bool IsDead { get; private set; }
+        public int Kills { get; private set; } = 0;
+        public int Deaths { get; private set; } = 0;
+        public bool IsDead { get; private set; } = false;
 
         PlayerStatusManager m_PlayerStatusManager;
 
@@ -33,16 +33,8 @@ namespace Windslayer.Server
         {
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
 
-            MaxHealth = 100;
-            MaxMana = 100;
-            Power = 10;
-            Defence = 10;
-        
             Health = MaxHealth;
             Mana = MaxMana;
-            Kills = 0;
-            Deaths = 0;
-            IsDead = false;
         }
 
         public void TakeDamage(float damage, GameObject damageSource, bool affectedByBlock)
