@@ -12,10 +12,7 @@ namespace Windslayer
         public ushort ClientID { get; private set; }
         public Vector3 Position { get; private set; }
 
-        public SpawnPlayerMsg()
-        {
-
-        }
+        public SpawnPlayerMsg() {}
 
         public SpawnPlayerMsg(ushort clientID, Vector3 position)
         {

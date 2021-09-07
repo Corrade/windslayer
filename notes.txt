@@ -7,10 +7,14 @@ todo
     refactor hit stun and blcok stun to different location probably
 
 
-spec mode: click on player portrait to spec. keypress to cycle through players. dead players including oneself can be viewed; just goes to their gravestone. click on something to enter freecam, which is the default cam if there are no players or something
-
 gamemodes
     deathmatch. team with most KO's at the end of the time wins. timer. dying -> spec -> respawn
+
+spectator mode
+    spec mode: click on player portrait to spec. keypress to cycle through players. dead players including oneself can be viewed; just goes to their gravestone. click on something to enter freecam, which is the default cam if there are no players or something
+
+    spectator mode implemented by client? except ofc ignore all input from spectators
+    should despawn player hitbox so they aren't involved in collision checks etc
 
 game flow
     pre-match
@@ -31,7 +35,6 @@ game flow
     end condition
         freeze all players, announce winner, force show scoreboard, transition to pre-match
 
-
 ui
     main menu
     server browser
@@ -45,6 +48,15 @@ ui
     character menu (skills and stats; drag skills to hud skills)
     settings menu
         keybinding
+
+other features
+    multiple gamemodes
+    kick as host
+    move another player to spec as host
+    votekick
+
+
+
 
 
 
@@ -164,7 +176,6 @@ c#
 
 networking
     https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
-    https://www.darkriftnetworking.com/DarkRift2/Docs/2.10.0/getting_started/index.html
     https://en.wikipedia.org/wiki/Netcode
     https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
 

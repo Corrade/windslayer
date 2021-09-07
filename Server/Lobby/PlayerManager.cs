@@ -17,12 +17,22 @@ namespace Windslayer.Server
         [SerializeField]
         PlayerConnectionManager PlayerPrefab;
         
+        [SerializeField]
+        List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
+
         XmlUnityServer m_XmlServer;
 
         Dictionary<IClient, PlayerConnectionManager> m_Players = new Dictionary<IClient, PlayerConnectionManager>();
+        List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
+        LobbySettingsMsg m_Settings;
 
         void Awake()
         {
+            if (Maps.Count != MapIDs.Count) {
+                Debug.LogError("Map(s) unimplemented");
+                Application.Quit();
+            }
+
             m_XmlServer = GetComponent<XmlUnityServer>();
 
             if (m_XmlServer == null) {
@@ -34,7 +44,7 @@ namespace Windslayer.Server
                 Debug.LogError("Server not open yet - check script execution order for XmlUnityServer.");
                 Application.Quit();
             }
-        
+
             m_XmlServer.Server.ClientManager.ClientConnected += ClientConnected;
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
@@ -77,6 +87,15 @@ namespace Windslayer.Server
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
             m_Players.Remove(e.Client);
+
+            using (Message msg = Message.Create(
+                Tags.DespawnPlayer,
+                new DespawnPlayerMsg(e.Client.ID)
+            )) {
+                foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
+                    client.SendMessage(msg, SendMode.Reliable);
+                }
+            }
         }
     }
 }

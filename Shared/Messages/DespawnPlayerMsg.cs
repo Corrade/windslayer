@@ -11,10 +11,7 @@ namespace Windslayer
     {
         public ushort ClientID { get; private set; }
 
-        public DespawnPlayerMsg()
-        {
-
-        }
+        public DespawnPlayerMsg() {}
 
         public DespawnPlayerMsg(ushort clientID)
         {

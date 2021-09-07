@@ -11,10 +11,7 @@ namespace Windslayer
     {
         public ushort InputID { get; private set; }
 
-        public PlayerInputMsg()
-        {
-
-        }
+        public PlayerInputMsg() {}
 
         public PlayerInputMsg(ushort inputID)
         {

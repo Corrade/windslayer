@@ -13,10 +13,7 @@ namespace Windslayer
         public Vector3 Position { get; private set; }
         public bool IsFacingLeft { get; private set; }
 
-        public MovePlayerMsg()
-        {
-
-        }
+        public MovePlayerMsg() {}
 
         public MovePlayerMsg(ushort clientID, Vector3 position, bool isFacingLeft)
         {
