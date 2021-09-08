@@ -9,6 +9,8 @@ namespace Windslayer
 
     public class Sync : MonoBehaviour
     {
+        public static readonly ushort Tickrate = 60;
+
         // runPerTick() takes in the number of frames that have elapsed since the start of this function. This function will therefore take in ints from 0 to (m_tickCount - 1).
         public static IEnumerator Delay(int tickCount, Action<int> runPerTick, Action callback)
         {

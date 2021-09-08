@@ -1,7 +1,0 @@
-# The Server
-
-- Tickrate == FixedUpdate()
-
-
-
-

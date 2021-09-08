@@ -14,50 +14,57 @@ namespace Windslayer.Server
 {
     public class Team : MonoBehaviour
     {
+        public Dictionary<IClient, GameObject> Players { get; private set; } = new Dictionary<IClient, GameObject>();
+        public int TotalKills { get; private set; } = 0;
+
         public event EventHandler OnTeamSizeChange;
+        public event EventHandler OnTotalKillsChange;
 
         XmlUnityServer m_XmlServer;
-
-        Dictionary<IClient, PlayerConnectionManager> m_Players = new Dictionary<IClient, PlayerConnectionManager>();
 
         void Awake()
         {
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
+        public void ResetKills()
+        {
+            TotalKills = 0;
+        }
+
         public int Size()
         {
-            return m_Players.Keys.Count;
+            return Players.Keys.Count;
         }
 
-        public int TotalKills()
+        public void Add(IClient client, GameObject player)
         {
-            int total = 0;
-
-            foreach (PlayerConnectionManager player in m_Players.Values) {
-                PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
-                total += stat.Kills;
-            }
-
-            return total;
-        }
-
-        public void Add(IClient client, PlayerConnectionManager player)
-        {
-            m_Players.Add(client, player);
+            Players.Add(client, player);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
+
+            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
+            stat.OnDeath += AddDeath;
         }
 
-        public void Remove(IClient client, PlayerConnectionManager player)
+        public void Remove(IClient client, GameObject player)
         {
-            m_Players.Remove(client);
+            Players.Remove(client);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
+
+            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
+            stat.OnDeath -= AddDeath;
         }
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            m_Players.Remove(e.Client);
+            Players.Remove(e.Client);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
+        }
+        
+        void AddDeath(object sender, EventArgs e)
+        {
+            ++TotalKills;
+            OnTotalKillsChange?.Invoke(this, EventArgs.Empty);
         }
     }
 }

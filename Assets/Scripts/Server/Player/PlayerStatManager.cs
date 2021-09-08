@@ -27,6 +27,8 @@ namespace Windslayer.Server
         public int Deaths { get; private set; } = 0;
         public bool IsDead { get; private set; } = false;
 
+        public event EventHandler OnDeath;
+
         PlayerStatusManager m_PlayerStatusManager;
 
         void Awake()
@@ -77,7 +79,8 @@ namespace Windslayer.Server
             }
 
             if (Health <= 0f) {
-                IsDead = true;
+                IsDead = true;            
+                OnDeath?.Invoke(this, EventArgs.Empty);
                 Deaths++;
 
                 PlayerStatManager stat = damageSource.GetComponent<PlayerStatManager>();

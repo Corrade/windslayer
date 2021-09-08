@@ -16,7 +16,7 @@ namespace Windslayer.Server
     {
         // 0000 0000 0000 0000
         // 0 to 65,535
-        public ushort CurrentTick { get; private set; } = 65000;
+        public static ushort CurrentTick { get; private set; } = 0;
 
         // Should run at the end of each tick
         void FixedUpdate()

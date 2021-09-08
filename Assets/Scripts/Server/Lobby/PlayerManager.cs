@@ -15,15 +15,19 @@ namespace Windslayer.Server
     public class PlayerManager : MonoBehaviour
     {
         [SerializeField]
-        PlayerConnectionManager PlayerPrefab;
+        GameObject PlayerPrefab;
         
         [SerializeField]
         List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
 
         XmlUnityServer m_XmlServer;
 
-        Dictionary<IClient, PlayerConnectionManager> m_Players = new Dictionary<IClient, PlayerConnectionManager>();
-        List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
+        Dictionary<IClient, GameObject> m_Players = new Dictionary<IClient, GameObject>();
+        List<Team> m_Teams = new List<Team>( new Team[TeamIDs.CountNoSpec] );
+        Map m_CurrentMap;
+
+        int m_TimeLeft;
+
         LobbySettingsMsg m_Settings;
 
         void Awake()
@@ -51,10 +55,43 @@ namespace Windslayer.Server
 
         void StartGame()
         {
+            /*
             if (m_Teams[TeamIDs.Blue].Size() < 1 || m_Teams[TeamIDs.Red].Size() < 1) {
                 return;
             }
+            */
 
+            m_CurrentMap = Instantiate(Maps[m_Settings.MapID], Vector2.zero, Quaternion.identity);
+
+            m_CurrentMap.MoveTeamToSpawn(TeamIDs.Blue, m_Teams[TeamIDs.Blue]);
+
+            TimeLeft = m_Settings.TimeLimit;
+
+            foreach (GameObject player in m_Players.Values) {
+                player.SetActive(true);
+            }
+
+            for (ushort i = 0; i < TeamIDs.CountNoSpec; ++i) {
+                m_Teams[i].OnTotalKillsChange += ProcessKill();
+            }
+
+            // set timer
+            // hook into kills. end game when kills or timer
+        }
+
+        void ProcessKill(object sender, EventArgs e)
+        {
+            int totalKills = 0;
+            
+            for (ushort i = 0; i < TeamIDs.CountNoSpec; ++i) {
+                totalKills += m_Teams[i].TotalKills;
+            }
+
+            // Transmit
+
+            if (totalKills >= LobbySettingsMsg.KillLimit) {
+                EndGame();
+            }
         }
 
         void EndGame()
@@ -64,16 +101,15 @@ namespace Windslayer.Server
 
         void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            PlayerConnectionManager player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity);
+            GameObject player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity);
 
-            if (player.gameObject.activeSelf) {
+            if (player.activeSelf) {
                 Debug.LogError("Player should not begin active");
             }
 
-            player.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
+            PlayerConnectionManager conn = player.GetComponent<PlayerConnectionManager>();
+            conn.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
             m_Players.Add(e.Client, player);
-
-            player.gameObject.SetActive(true);
 
             // Broadcast the new player to all existing players
             using (Message msg = Message.Create(
@@ -87,8 +123,9 @@ namespace Windslayer.Server
 
             // Broadcast all players (including the new player itself) to the new player
             using (DarkRiftWriter w = DarkRiftWriter.Create()) {
-                foreach (PlayerConnectionManager p in m_Players.Values) {
-                    w.Write(new SpawnPlayerMsg(p.ClientID, Vector3.zero));
+                foreach (GameObject p in m_Players.Values) {
+                    PlayerConnectionManager c = p.GetComponent<PlayerConnectionManager>();
+                    w.Write(new SpawnPlayerMsg(c.ClientID, Vector3.zero));
                 }
 
                 using (Message msg = Message.Create(Tags.SpawnPlayer, w)) {
