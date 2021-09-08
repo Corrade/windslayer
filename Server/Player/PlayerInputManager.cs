@@ -52,7 +52,7 @@ namespace Windslayer.Server
             }
         }
 
-        // Should run at the end of each tick. Set script execution order accordingly
+        // Should run after all the player scripts. Set script execution order accordingly
         void FixedUpdate()
         {
             for (int i = 0; i < m_InputStatesBuffer.Count; ++i) {

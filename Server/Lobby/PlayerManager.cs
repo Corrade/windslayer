@@ -49,6 +49,19 @@ namespace Windslayer.Server
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
+        void StartGame()
+        {
+            if (m_Teams[TeamIDs.Blue].Size() < 1 || m_Teams[TeamIDs.Red].Size() < 1) {
+                return;
+            }
+
+        }
+
+        void EndGame()
+        {
+
+        }
+
         void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
             PlayerConnectionManager player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity);
