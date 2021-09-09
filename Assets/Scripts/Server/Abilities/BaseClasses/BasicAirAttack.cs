@@ -10,7 +10,8 @@ namespace Windslayer.Server
     public abstract class BasicAirAttack : BasicAttack
     {
         [Tooltip("Attacker stun duration in frames")]
-        public int AttackerStun;
+        [SerializeField]
+        int AttackerStun;
 
         protected override void Hit(GameObject other)
         {

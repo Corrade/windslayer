@@ -17,37 +17,48 @@ namespace Windslayer.Server
     public class PlayerMovementManager : MonoBehaviour
     {
         [Tooltip("Distance from the bottom of the character to raycast for the ground")]
-        public float GroundCheckDistance = 0.05f;
+        [SerializeField]
+        float GroundCheckDistance = 0.05f;
 
         [Tooltip("The player will slide off ground planes steeper than this value (degrees)")]
-        public float MaximumGroundAngle = 45f;
+        [SerializeField]
+        float MaximumGroundAngle = 45f;
 
         [Tooltip("Horizontal speed")]
-        public float GroundSpeed = 7f;
+        [SerializeField]
+        float GroundSpeed = 7f;
 
         [Tooltip("Air strafe speed")]
-        public float AirStrafeSpeed = 7f;
+        [SerializeField]
+        float AirStrafeSpeed = 7f;
 
         [Tooltip("Air strafe lerp speed")]
-        public float AirStrafeInfluenceSpeed = 7f;
+        [SerializeField]
+        float AirStrafeInfluenceSpeed = 7f;
 
         [Tooltip("Force applied downward when in the air")]
-        public float GravityDownForce = 80f;
+        [SerializeField]
+        float GravityDownForce = 80f;
 
         [Tooltip("This velocity is immediately applied to the player when they jump")]
-        public float JumpStartVelocity = 5f;
+        [SerializeField]
+        float JumpStartVelocity = 5f;
 
         [Tooltip("The amount of force applied to the player during their jump each physics tick")]
-        public float JumpAcceleration = 130f;
+        [SerializeField]
+        float JumpAcceleration = 130f;
 
         [Tooltip("The maximum amount of time the player can hold down jump whilst accelerating their jump")]
-        public float JumpMaxTime = 0.1f;
+        [SerializeField]
+        float JumpMaxTime = 0.1f;
 
         [Tooltip("Maximum number of times the player can jump without landing")]
-        public int MaxJumps = 2;
+        [SerializeField]
+        int MaxJumps = 2;
 
         [Tooltip("The player will be unable to stand on platforms they've dropped from for this many frames")]
-        public int IgnorePlatformDroppedDuration = 10;
+        [SerializeField]
+        int IgnorePlatformDroppedDuration = 10;
 
         public Vector2 CandidateVelocity { get; private set; }
         public bool IsGrounded { get; private set; }

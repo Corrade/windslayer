@@ -10,14 +10,18 @@ namespace Windslayer
     public class LobbySettingsMsg : IDarkRiftSerializable
     {
         // Multiple of 2, >= 2, >= number of players already connected
-        public ushort MaxPlayers { get; private set; } = 12;
-        // 0 = no kill limit
-        public ushort KillLimit { get; private set; } = 50;
-        // (Seconds) 0 = no time limit
-        public int TimeLimit { get; private set; } = 300;
+        public ushort MaxPlayers { get; set; } = 12;
+        
+        public ushort MapID { get; set; } = MapIDs.Popola;
+
         // (Seconds)
-        public ushort RespawnTime { get; private set; } = 8;
-        public ushort MapID { get; private set; } = MapIDs.Popola;
+        public ushort RespawnTime { get; set; } = 8;
+
+        // 0 = no kill limit
+        public ushort KillLimit { get; set; } = 50;
+
+        // (Seconds) 0 = no time limit
+        public int TimeLimit { get; set; } = 300;
 
         public LobbySettingsMsg() {}
 

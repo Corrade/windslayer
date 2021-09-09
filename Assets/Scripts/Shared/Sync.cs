@@ -9,7 +9,7 @@ namespace Windslayer
 
     public class Sync : MonoBehaviour
     {
-        public static readonly ushort Tickrate = 60;
+        public static readonly uint Tickrate = 60;
 
         // runPerTick() takes in the number of frames that have elapsed since the start of this function. This function will therefore take in ints from 0 to (m_tickCount - 1).
         public static IEnumerator Delay(int tickCount, Action<int> runPerTick, Action callback)
@@ -40,14 +40,14 @@ namespace Windslayer
             yield return Delay(tickCount, (int x) => {});
         }
 
-        public static bool IsTickBefore(ushort Tick1, ushort Tick2)
+        public static bool IsTickBefore(uint Tick1, uint Tick2)
         {
             // If Tick1 is large and Tick2 is small (with a generous, safe gap between those two thresholds), then assume Tick2 has wrapped around and hence Tick1 precedes it
-            // Large = first 4 bits are set = at least 61440
-            // Small = first 3 bits are unset = at most 8191
-            if (((Tick1 >> 12) == 0b1111) && ((Tick2 >> 13) == 0b000)) {
+            // Large = first 20 bits are set = at least 4294963200
+            // Small = first 19 bits are unset = at most 8191
+            if ((~(Tick1 >> 12) == 0b0) && ((Tick2 >> 13) == 0b0)) {
                 return true;
-            } else if (((Tick2 >> 12) == 0b1111) && ((Tick1 >> 13) == 0b000)) {
+            } else if ((~(Tick2 >> 12) == 0b0) && ((Tick1 >> 13) == 0b0)) {
                 return false;
             } else {
                 return Tick1 < Tick2;

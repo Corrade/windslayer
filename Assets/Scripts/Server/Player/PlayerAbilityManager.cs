@@ -11,22 +11,28 @@ namespace Windslayer.Server
     public class PlayerAbilityManager : MonoBehaviour
     {
         [Tooltip("Light attack air")]
-        public LightAttackAir LightAttackAirPrefab;
+        [SerializeField]
+        LightAttackAir LightAttackAirPrefab;
 
         [Tooltip("Light attack ground")]
-        public LightAttackGround LightAttackGroundPrefab;
+        [SerializeField]
+        LightAttackGround LightAttackGroundPrefab;
 
         [Tooltip("Strong attack air")]
-        public StrongAttackAir StrongAttackAirPrefab;
+        [SerializeField]
+        StrongAttackAir StrongAttackAirPrefab;
 
         [Tooltip("Strong attack ground")]
-        public StrongAttackGround StrongAttackGroundPrefab;
+        [SerializeField]
+        StrongAttackGround StrongAttackGroundPrefab;
 
         [Tooltip("Block")]
-        public Block BlockPrefab;
+        [SerializeField]
+        Block BlockPrefab;
 
         [Tooltip("Dash")]
-        public Dash DashPrefab;
+        [SerializeField]
+        Dash DashPrefab;
 
         PlayerInputManager m_PlayerInputManager;
         PlayerStatusManager m_PlayerStatusManager;

@@ -9,7 +9,8 @@ namespace Windslayer.Server
     public class Dash : Ability
     {
         [Tooltip("The force of the dash")]
-        public int Force;
+        [SerializeField]
+        int Force;
 
         protected override void OnActiveBegin()
         {

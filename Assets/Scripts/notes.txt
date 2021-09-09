@@ -58,7 +58,7 @@ other features
 
 
 
-
+In order to prevent resource leaks, it is important to unsubscribe from events before you dispose of a subscriber object. 
 
 
 totally invincible during hit stun?

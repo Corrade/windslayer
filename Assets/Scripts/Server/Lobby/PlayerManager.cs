@@ -22,13 +22,13 @@ namespace Windslayer.Server
 
         XmlUnityServer m_XmlServer;
 
+        LobbySettingsMsg m_Settings;
         Dictionary<IClient, GameObject> m_Players = new Dictionary<IClient, GameObject>();
         List<Team> m_Teams = new List<Team>( new Team[TeamIDs.CountNoSpec] );
+        Team m_SpecTeam;
         Map m_CurrentMap;
-
-        int m_TimeLeft;
-
-        LobbySettingsMsg m_Settings;
+        EventHandler m_TimeLimitEvent;
+        bool m_GameStarted = false;
 
         void Awake()
         {
@@ -40,12 +40,12 @@ namespace Windslayer.Server
             m_XmlServer = GetComponent<XmlUnityServer>();
 
             if (m_XmlServer == null) {
-                Debug.LogError("Server unassigned in AgarPlayerManager.");
+                Debug.LogError("Server unassigned");
                 Application.Quit();
             }
 
             if (m_XmlServer.Server == null) {
-                Debug.LogError("Server not open yet - check script execution order for XmlUnityServer.");
+                Debug.LogError("Server not open yet - check script execution order for XmlUnityServer");
                 Application.Quit();
             }
 
@@ -53,50 +53,126 @@ namespace Windslayer.Server
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
+        // Replaces m_Settings with the valid fields of settings (a client should never send invalid settings unless they're malicious, so there's no need for error messages)
+        void ReplaceLobbySettings(LobbySettingsMsg settings)
+        {
+            if (settings.MaxPlayers < 2 || settings.MaxPlayers % 2 != 0 || settings.MaxPlayers < m_Players.Count) {
+                settings.MaxPlayers = m_Settings.MaxPlayers;
+            }
+
+            if (settings.MapID < 0 || settings.MapID >= MapIDs.Count) {
+                settings.MapID = m_Settings.MapID;
+            }
+
+            if (settings.RespawnTime < 0) {
+                settings.RespawnTime = m_Settings.RespawnTime;
+            }
+
+            if (settings.KillLimit < 0) {
+                settings.KillLimit = m_Settings.KillLimit;
+            }
+
+            if (settings.TimeLimit < 0) {
+                settings.TimeLimit = m_Settings.TimeLimit;
+            }
+
+            m_Settings = settings;
+        }
+
         void StartGame()
         {
-            /*
-            if (m_Teams[TeamIDs.Blue].Size() < 1 || m_Teams[TeamIDs.Red].Size() < 1) {
-                return;
-            }
-            */
-
             m_CurrentMap = Instantiate(Maps[m_Settings.MapID], Vector2.zero, Quaternion.identity);
 
-            m_CurrentMap.MoveTeamToSpawn(TeamIDs.Blue, m_Teams[TeamIDs.Blue]);
+            m_TimeLimitEvent = Clock.Wait(Sync.Tickrate * (uint)m_Settings.TimeLimit, () => {
+                Debug.Log("Time ran out");
+                Timeout();
+            });
 
-            TimeLeft = m_Settings.TimeLimit;
+            for (ushort i = 0; i < m_Teams.Count; ++i) {
+                m_Teams[i].OnTotalKillsChange += CheckEndByKills;
+                m_CurrentMap.MoveTeamToSpawn(i, m_Teams[i]);
+            }
 
             foreach (GameObject player in m_Players.Values) {
                 player.SetActive(true);
             }
 
-            for (ushort i = 0; i < TeamIDs.CountNoSpec; ++i) {
-                m_Teams[i].OnTotalKillsChange += ProcessKill();
-            }
-
-            // set timer
-            // hook into kills. end game when kills or timer
+            m_GameStarted = true;
         }
 
-        void ProcessKill(object sender, EventArgs e)
+        void Timeout()
         {
-            int totalKills = 0;
-            
-            for (ushort i = 0; i < TeamIDs.CountNoSpec; ++i) {
-                totalKills += m_Teams[i].TotalKills;
+            if (!m_GameStarted) {
+                return;
             }
 
-            // Transmit
+            List<ushort> teamIDsWithMostKills = new List<ushort>();
+            int mostKills = -1;
 
-            if (totalKills >= LobbySettingsMsg.KillLimit) {
-                EndGame();
+            for (ushort i = 0; i < m_Teams.Count; ++i) {
+                if (m_Teams[i].TotalKills == mostKills) {
+                    teamIDsWithMostKills.Add(i);
+                } else if (m_Teams[i].TotalKills > mostKills) {
+                    teamIDsWithMostKills.Clear();
+                    teamIDsWithMostKills.Add(i);
+                    mostKills = m_Teams[i].TotalKills;
+                }
+            }
+
+            if (teamIDsWithMostKills.Count == 1) {
+                EndGame(m_Teams[teamIDsWithMostKills[0]]);
+            } else {
+                EndGame(null);
             }
         }
 
-        void EndGame()
+        void CheckEndByDisconnect()
         {
+            if (!m_GameStarted) {
+                return;
+            }
 
+            List<Team> teamsWithPlayers = m_Teams.FindAll((Team team) => {
+                return team.Size() >= 1;
+            });
+
+            if (teamsWithPlayers.Count == 1) {
+                EndGame(teamsWithPlayers[0]);
+            } else if (teamsWithPlayers.Count == 0) {
+                EndGame(null);
+            }
+        }
+
+        void CheckEndByKills(object sender, EventArgs e)
+        {
+            if (!m_GameStarted) {
+                return;
+            }
+
+            foreach (Team team in m_Teams) {
+                if (team.TotalKills >= m_Settings.KillLimit) {
+                    EndGame(team);
+                }
+            }
+        }
+
+        void EndGame(Team winningTeam)
+        {
+            m_GameStarted = false;
+
+            if (winningTeam == null) {
+                Debug.Log("Draw");
+            } else {
+                Debug.Log("Won");
+            }
+
+            Clock.StopWait(m_TimeLimitEvent);
+
+            foreach (Team team in m_Teams) {
+                team.OnTotalKillsChange -= CheckEndByKills;
+            }
+
+            Debug.Log("Game ended");
         }
 
         void ClientConnected(object sender, ClientConnectedEventArgs e)
@@ -146,6 +222,8 @@ namespace Windslayer.Server
                     client.SendMessage(msg, SendMode.Reliable);
                 }
             }
+
+            CheckEndByDisconnect();
         }
     }
 }
