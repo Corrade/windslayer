@@ -13,7 +13,7 @@ namespace Windslayer.Server
 {
     // Receiving movement-related input from the associated player and communicating it
 
-    [RequireComponent(typeof(PlayerConnectionManager)), RequireComponent(typeof(PlayerInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(BoxCollider2D)), RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(PlayerConnectionManager)), RequireComponent(typeof(PlayerCombatInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(BoxCollider2D)), RequireComponent(typeof(Rigidbody2D))]
     public class PlayerMovementManager : MonoBehaviour
     {
         [Tooltip("Distance from the bottom of the character to raycast for the ground")]
@@ -65,7 +65,7 @@ namespace Windslayer.Server
         public bool IsFacingLeft { get; private set; }
 
         PlayerConnectionManager m_PlayerConnectionManager;
-        PlayerInputManager m_PlayerInputManager;
+        PlayerCombatInputManager m_PlayerCombatInputManager;
         PlayerStatusManager m_PlayerStatusManager;
         BoxCollider2D m_CollisionCollider;
         Rigidbody2D m_RB2D;
@@ -90,7 +90,7 @@ namespace Windslayer.Server
         void Awake()
         {
             m_PlayerConnectionManager = GetComponent<PlayerConnectionManager>();
-            m_PlayerInputManager = GetComponent<PlayerInputManager>();
+            m_PlayerCombatInputManager = GetComponent<PlayerCombatInputManager>();
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
             m_CollisionCollider = GetComponent<BoxCollider2D>();
             m_RB2D = GetComponent<Rigidbody2D>();
@@ -285,7 +285,7 @@ namespace Windslayer.Server
                 }
             }
 
-            return m_PlayerInputManager.GetMoveInput();
+            return m_PlayerCombatInputManager.GetMoveInput();
         }
 
         bool IsDropActive()
@@ -294,7 +294,7 @@ namespace Windslayer.Server
                 return false;
             }
 
-            return m_PlayerInputManager.IsActive(InputIDs.Drop);
+            return m_PlayerCombatInputManager.IsActive(CombatInputIDs.Drop);
         }
 
         bool IsJumpActive()
@@ -303,7 +303,7 @@ namespace Windslayer.Server
                 return false;
             }
 
-            return m_PlayerInputManager.IsActive(InputIDs.Jump);
+            return m_PlayerCombatInputManager.IsActive(CombatInputIDs.Jump);
         }
 
         bool IsJumpJustActivated()
@@ -312,7 +312,7 @@ namespace Windslayer.Server
                 return false;
             }
 
-            return m_PlayerInputManager.IsJustActivated(InputIDs.Jump);
+            return m_PlayerCombatInputManager.IsJustActivated(CombatInputIDs.Jump);
         }
 
         void StartJump()

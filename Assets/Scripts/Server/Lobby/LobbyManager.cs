@@ -12,10 +12,10 @@ using Windslayer;
 
 namespace Windslayer.Server
 {
-    public class PlayerManager : MonoBehaviour
+    public class LobbyManager : MonoBehaviour
     {
         [SerializeField]
-        GameObject PlayerPrefab;
+        GameObject PlayerClientPrefab;
         
         [SerializeField]
         List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
@@ -23,7 +23,7 @@ namespace Windslayer.Server
         XmlUnityServer m_XmlServer;
 
         LobbySettingsMsg m_Settings;
-        Dictionary<IClient, GameObject> m_Players = new Dictionary<IClient, GameObject>();
+        Dictionary<IClient, GameObject> m_PlayerClients = new Dictionary<IClient, GameObject>();
         List<Team> m_Teams = new List<Team>( new Team[TeamIDs.CountNoSpec] );
         Team m_SpecTeam;
         Map m_CurrentMap;
@@ -56,7 +56,7 @@ namespace Windslayer.Server
         // Replaces m_Settings with the valid fields of settings (a client should never send invalid settings unless they're malicious, so there's no need for error messages)
         void ReplaceLobbySettings(LobbySettingsMsg settings)
         {
-            if (settings.MaxPlayers < 2 || settings.MaxPlayers % 2 != 0 || settings.MaxPlayers < m_Players.Count) {
+            if (settings.MaxPlayers < 2 || settings.MaxPlayers % 2 != 0 || settings.MaxPlayers < m_PlayerClients.Count) {
                 settings.MaxPlayers = m_Settings.MaxPlayers;
             }
 
@@ -91,10 +91,6 @@ namespace Windslayer.Server
             for (ushort i = 0; i < m_Teams.Count; ++i) {
                 m_Teams[i].OnTotalKillsChange += CheckEndByKills;
                 m_CurrentMap.MoveTeamToSpawn(i, m_Teams[i]);
-            }
-
-            foreach (GameObject player in m_Players.Values) {
-                player.SetActive(true);
             }
 
             m_GameStarted = true;
@@ -177,7 +173,7 @@ namespace Windslayer.Server
 
         void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            GameObject player = Instantiate(PlayerPrefab, Vector2.zero, Quaternion.identity);
+            GameObject playerClient = Instantiate(PlayerClientPrefab, Vector2.zero, Quaternion.identity);
 
             if (player.activeSelf) {
                 Debug.LogError("Player should not begin active");
@@ -185,12 +181,17 @@ namespace Windslayer.Server
 
             PlayerConnectionManager conn = player.GetComponent<PlayerConnectionManager>();
             conn.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
-            m_Players.Add(e.Client, player);
+            m_PlayerClients.Add(e.Client, player);
+
+            playerClient.SetActive(true);
+
+            /*
+            broadcast just the player client here
 
             // Broadcast the new player to all existing players
             using (Message msg = Message.Create(
                 Tags.SpawnPlayer,
-                new SpawnPlayerMsg(e.Client.ID, Vector3.zero)
+                new SpawnPlayerMsg(e.Client.ID)
             )) {
                 foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
                     client.SendMessage(msg, SendMode.Reliable);
@@ -199,20 +200,21 @@ namespace Windslayer.Server
 
             // Broadcast all players (including the new player itself) to the new player
             using (DarkRiftWriter w = DarkRiftWriter.Create()) {
-                foreach (GameObject p in m_Players.Values) {
+                foreach (GameObject p in m_PlayerClients.Values) {
                     PlayerConnectionManager c = p.GetComponent<PlayerConnectionManager>();
-                    w.Write(new SpawnPlayerMsg(c.ClientID, Vector3.zero));
+                    w.Write(new SpawnPlayerMsg(c.ClientID));
                 }
 
                 using (Message msg = Message.Create(Tags.SpawnPlayer, w)) {
                     e.Client.SendMessage(msg, SendMode.Reliable);
                 }
             }
+            */
         }
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            m_Players.Remove(e.Client);
+            m_PlayerClients.Remove(e.Client);
 
             using (Message msg = Message.Create(
                 Tags.DespawnPlayer,

@@ -7,13 +7,13 @@ using DarkRift;
 
 namespace Windslayer
 {
-    public class PlayerInputMsg : IDarkRiftSerializable
+    public class PlayerCombatInputMsg : IDarkRiftSerializable
     {
         public ushort InputID { get; private set; }
 
-        public PlayerInputMsg() {}
+        public PlayerCombatInputMsg() {}
 
-        public PlayerInputMsg(ushort inputID)
+        public PlayerCombatInputMsg(ushort inputID)
         {
             InputID = inputID;
         }

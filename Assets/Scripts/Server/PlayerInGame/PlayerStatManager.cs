@@ -13,8 +13,7 @@ namespace Windslayer.Server
         [Tooltip("Percentage of damage mitigated by block")]
         public float BlockModifier = 0.5f;
 
-        [Tooltip("Team number")]
-        public int Team = 0;
+        public int Team { get; set; } = TeamIDs.Spectators;
 
         public int MaxHealth { get; private set; } = 100;
         public int MaxMana { get; private set; } = 100;

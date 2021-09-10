@@ -59,10 +59,10 @@ namespace Windslayer.Client
                     PlayerConnectionManager player;
 
                     if (msg.ClientID == m_Client.ID) {
-                        player = Instantiate(ThisPlayerPrefab, msg.Position, Quaternion.identity);
+                        player = Instantiate(ThisPlayerPrefab, Vector3.zero, Quaternion.identity);
                         Cam.Target = player.transform;
                     } else {
-                        player = Instantiate(OtherPlayerPrefab, msg.Position, Quaternion.identity);
+                        player = Instantiate(OtherPlayerPrefab, Vector3.zero, Quaternion.identity);
                     }
 
                     player.Initialise(m_Client);

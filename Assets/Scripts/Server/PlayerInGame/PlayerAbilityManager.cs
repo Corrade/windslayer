@@ -7,7 +7,7 @@ using Windslayer;
 
 namespace Windslayer.Server
 {
-    [RequireComponent(typeof(PlayerInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(PlayerMovementManager))]
+    [RequireComponent(typeof(PlayerCombatInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(PlayerMovementManager))]
     public class PlayerAbilityManager : MonoBehaviour
     {
         [Tooltip("Light attack air")]
@@ -34,7 +34,7 @@ namespace Windslayer.Server
         [SerializeField]
         Dash DashPrefab;
 
-        PlayerInputManager m_PlayerInputManager;
+        PlayerCombatInputManager m_PlayerCombatInputManager;
         PlayerStatusManager m_PlayerStatusManager;
         PlayerMovementManager m_PlayerMovementManager;
 
@@ -42,7 +42,7 @@ namespace Windslayer.Server
 
         void Awake()
         {
-            m_PlayerInputManager = GetComponent<PlayerInputManager>();
+            m_PlayerCombatInputManager = GetComponent<PlayerCombatInputManager>();
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
             m_PlayerMovementManager = GetComponent<PlayerMovementManager>();
 
@@ -57,7 +57,7 @@ namespace Windslayer.Server
                 return;
             }
 
-            if (!m_PlayerInputManager.IsActive(InputIDs.Block)) {
+            if (!m_PlayerCombatInputManager.IsActive(CombatInputIDs.Block)) {
                 foreach (Ability a in m_ActiveAbilities) {
                     if (a != null && a is Block) {
                         Block block = (Block)a;
@@ -70,7 +70,7 @@ namespace Windslayer.Server
                 return;
             }
 
-            if (m_PlayerInputManager.IsActive(InputIDs.LightAttack)) {
+            if (m_PlayerCombatInputManager.IsActive(CombatInputIDs.LightAttack)) {
                 Ability instance;
                 if (m_PlayerMovementManager.IsGrounded) {
                     instance = Instantiate(LightAttackGroundPrefab, transform);
@@ -82,7 +82,7 @@ namespace Windslayer.Server
                 instance.Initialise(gameObject);
             }
 
-            if (m_PlayerInputManager.IsActive(InputIDs.StrongAttack)) {
+            if (m_PlayerCombatInputManager.IsActive(CombatInputIDs.StrongAttack)) {
                 Ability instance;
                 if (m_PlayerMovementManager.IsGrounded) {
                     instance = Instantiate(StrongAttackGroundPrefab, transform);
@@ -94,13 +94,13 @@ namespace Windslayer.Server
                 instance.Initialise(gameObject);
             }
 
-            if (m_PlayerInputManager.IsActive(InputIDs.Block)) {
+            if (m_PlayerCombatInputManager.IsActive(CombatInputIDs.Block)) {
                 Ability instance = Instantiate(BlockPrefab, transform);
                 m_ActiveAbilities.Add(instance);
                 instance.Initialise(gameObject);
             }
 
-            if (m_PlayerInputManager.IsActive(InputIDs.Dash)) {
+            if (m_PlayerCombatInputManager.IsActive(CombatInputIDs.Dash)) {
                 if (m_PlayerMovementManager.IsGrounded) {
                     Ability instance = Instantiate(DashPrefab, transform);
                     m_ActiveAbilities.Add(instance);

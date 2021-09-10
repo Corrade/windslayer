@@ -12,13 +12,13 @@ using Windslayer;
 namespace Windslayer.Server
 {
     [RequireComponent(typeof(PlayerConnectionManager))]
-    public class PlayerInputManager : MonoBehaviour
+    public class PlayerCombatInputManager : MonoBehaviour
     {
         PlayerConnectionManager m_PlayerConnectionManager;
 
-        List<bool> m_InputStatesBuffer = new List<bool>( new bool[InputIDs.Count] );
-        List<bool> m_JustActivatedInputStates = new List<bool>( new bool[InputIDs.Count] );
-        List<bool> m_InputStates = new List<bool>( new bool[InputIDs.Count] );
+        List<bool> m_InputStatesBuffer = new List<bool>( new bool[CombatInputIDs.Count] );
+        List<bool> m_JustActivatedInputStates = new List<bool>( new bool[CombatInputIDs.Count] );
+        List<bool> m_InputStates = new List<bool>( new bool[CombatInputIDs.Count] );
 
         void Awake()
         {
@@ -41,10 +41,10 @@ namespace Windslayer.Server
         {
             using (Message message = e.GetMessage() as Message)
             using (DarkRiftReader reader = message.GetReader()) {
-                if (message.Tag == Tags.PlayerInput) {
+                if (message.Tag == Tags.PlayerCombatInput) {
                     while (reader.Position < reader.Length)
                     {
-                        PlayerInputMsg msg = reader.ReadSerializable<PlayerInputMsg>();
+                        PlayerCombatInputMsg msg = reader.ReadSerializable<PlayerCombatInputMsg>();
 
                         m_InputStatesBuffer[msg.InputID] = true;
                     }
@@ -69,11 +69,11 @@ namespace Windslayer.Server
         {
             float res = 0f;
 
-            if (m_InputStates[InputIDs.MoveLeft]) {
+            if (m_InputStates[CombatInputIDs.MoveLeft]) {
                 res -= 1f;
             }
 
-            if (m_InputStates[InputIDs.MoveRight]) {
+            if (m_InputStates[CombatInputIDs.MoveRight]) {
                 res += 1f;
             }
 

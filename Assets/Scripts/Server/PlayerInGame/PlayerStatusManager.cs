@@ -57,44 +57,39 @@ namespace Windslayer.Server
         {
             public event EventHandler OnStart;
             public event EventHandler OnEnd;
-            int m_FramesRemaining;
+            int m_TicksRemaining;
 
             public StatusInfo()
             {
-                m_FramesRemaining = 0;
+                m_TicksRemaining = 0;
             }
 
             public void Tick()
             {
-                if (m_FramesRemaining > 0) {
-                    m_FramesRemaining--;
+                if (m_TicksRemaining > 0) {
+                    m_TicksRemaining--;
 
-                    if (m_FramesRemaining <= 0) {
+                    if (m_TicksRemaining <= 0) {
                         ClearStatus();
                     }
                 }
             }
 
-            public void StartStatus(int frames)
+            public void StartStatus(int ticks)
             {
-                m_FramesRemaining = frames;
+                m_TicksRemaining = ticks;
                 OnStart?.Invoke(this, EventArgs.Empty);
             }
 
             public void ClearStatus()
             {
-                m_FramesRemaining = 0;
+                m_TicksRemaining = 0;
                 OnEnd?.Invoke(this, EventArgs.Empty);
             }
 
             public bool Has()
             {
-                return m_FramesRemaining > 0;
-            }
-
-            public int GetRemainingFrames()
-            {
-                return m_FramesRemaining;
+                return m_TicksRemaining > 0;
             }
         }
 
@@ -116,10 +111,10 @@ namespace Windslayer.Server
         }
 
         // Statuses will clear by themselves
-        public void StartStatus(Status status, int frames)
+        public void StartStatus(Status status, int ticks)
         {
-            if (frames > 0) {
-                m_Statuses[status].StartStatus(frames);
+            if (ticks > 0) {
+                m_Statuses[status].StartStatus(ticks);
             }
         }
 
@@ -153,11 +148,6 @@ namespace Windslayer.Server
             }
 
             return true;
-        }
-
-        public int GetRemainingFrames(Status status)
-        {
-            return m_Statuses[status].GetRemainingFrames();
         }
 
         public void AddStartListener(Status status, EventHandler handler)

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Windslayer
 {
-    static class InputIDs
+    static class CombatInputIDs
     {
         public static readonly ushort MoveRight = 0;
         public static readonly ushort MoveLeft = 1;

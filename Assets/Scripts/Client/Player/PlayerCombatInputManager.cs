@@ -10,7 +10,7 @@ using Windslayer;
 
 namespace Windslayer.Client
 {
-    public class PlayerInputManager : MonoBehaviour
+    public class PlayerCombatInputManager : MonoBehaviour
     {
         PlayerConnectionManager m_PlayerConnectionManager;
 
@@ -23,14 +23,14 @@ namespace Windslayer.Client
         }
 
         protected virtual void SetupBinds() {
-            m_Binds.Add(InputIDs.MoveLeft, KeyCode.A);
-            m_Binds.Add(InputIDs.MoveRight, KeyCode.D);
-            m_Binds.Add(InputIDs.Jump, KeyCode.W);
-            m_Binds.Add(InputIDs.Drop, KeyCode.S);
-            m_Binds.Add(InputIDs.LightAttack, KeyCode.Z);
-            m_Binds.Add(InputIDs.StrongAttack, KeyCode.C);
-            m_Binds.Add(InputIDs.Block, KeyCode.X);
-            m_Binds.Add(InputIDs.Dash, KeyCode.V);
+            m_Binds.Add(CombatInputIDs.MoveLeft, KeyCode.A);
+            m_Binds.Add(CombatInputIDs.MoveRight, KeyCode.D);
+            m_Binds.Add(CombatInputIDs.Jump, KeyCode.W);
+            m_Binds.Add(CombatInputIDs.Drop, KeyCode.S);
+            m_Binds.Add(CombatInputIDs.LightAttack, KeyCode.Z);
+            m_Binds.Add(CombatInputIDs.StrongAttack, KeyCode.C);
+            m_Binds.Add(CombatInputIDs.Block, KeyCode.X);
+            m_Binds.Add(CombatInputIDs.Dash, KeyCode.V);
         }
 
         void Update()
@@ -38,11 +38,11 @@ namespace Windslayer.Client
             using (DarkRiftWriter writer = DarkRiftWriter.Create()) {
                 foreach (KeyValuePair<ushort, KeyCode> entry in m_Binds) {
                     if (Input.GetKey(entry.Value)) {
-                        writer.Write(new PlayerInputMsg(entry.Key));
+                        writer.Write(new PlayerCombatInputMsg(entry.Key));
                     }
                 }
 
-                using (Message message = Message.Create(Tags.PlayerInput, writer)) {
+                using (Message message = Message.Create(Tags.PlayerCombatInput, writer)) {
                     m_PlayerConnectionManager.Client.SendMessage(message, SendMode.Unreliable);
                 }
             }
