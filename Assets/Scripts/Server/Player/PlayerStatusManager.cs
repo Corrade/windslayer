@@ -11,44 +11,47 @@ namespace Windslayer.Server
 
     // Compound statuses are independent: if an ability inflicting a status S1 for X frames is applied to a player who has a status S' = S1 | S2 | ..., the player is set to have S1 for X frames and S' remains as usual (as opposed to S' being overwritten just because one of its statuses is overwritten). Furthermore, compounded statuses must be implemented independently - they are not automatically implemented if their parts are implemented.
 
-    [Flags]
     public enum Status
     {
         // A rooted player cannot influence their own movement from regular keypresses nor abilities, but is still subject to gravity and others' forces. Additionally, if a player is rooted in the air, their previous air strafe input (if any) is maintained, which gives the impression that their velocity is preserved.
-        Rooted,
+        Rooted = 0b0000_0000_0000_0001,
 
         // A suspended player cannot move or be made to move. An airborne player exiting suspension will continue along their previous velocity (i.e. suspension preserves velocity)
-        Suspended,
+        Suspended = 0b0000_0000_0000_0010,
 
         // A silenced player cannot use any abilities
-        Silenced,
+        Silenced = 0b0000_0000_0000_0100,
 
         // A disarmed player cannot light attack nor strong attack
-        Disarmed,
+        Disarmed = 0b0000_0000_0000_1000,
 
         // A confused player has their left and right movement keybinds swapped
-        Confused,
+        Confused = 0b0000_0000_0001_0000,
 
         // An invincible player cannot be damaged (even by DoT effects applied before the invincibility), but may be targeted (hit, healed and knocked back etc.)
-        Invincible,
+        Invincible = 0b0000_0000_0010_0000,
 
         // An intangible player cannot be targeted but may still take damage from effects applied before the intangibility
-        Intangible,
+        Intangible = 0b0000_0000_0100_0000,
 
         // An invisible player has their player hidden from others but still produces dust clouds and ability effects etc.
-        Invisible,
+        Invisible = 0b0000_0000_1000_0000,
 
         // A blocking player mitigates damage
-        Blocking,
+        Blocking = 0b0000_0001_0000_0000,
 
         // Suspended + silenced + disarmed
-        Stunned,
+        Stunned = Suspended | Silenced | Disarmed,
 
         // Stunned + intangible
-        Frozen,
+        Frozen = Stunned | Intangible,
 
-        // Rooted + silenced + disarmed. (if this were just stunned): This exists as PlayerAbilityManager interrupts all ongoing abilities when the player is stunned regularly, but abilities inflict their own stun, e.g. during startup and recovery, and of course should not interrupt themselves
-        Casting,
+        // Rooted + silenced + disarmed
+        // This exists as it is slightly different from stun. Even if it weren't PlayerAbilityManager interrupts all ongoing abilities when the player is stunned regularly, but abilities inflict their own stun, e.g. during startup and recovery, and of course should not interrupt themselves
+        Casting = Rooted | Silenced | Disarmed,
+
+        // Casting + invincible + intangible
+        Dead = Casting | Invincible | Intangible,
     }
 
     public class PlayerStatusManager : MonoBehaviour
@@ -123,11 +126,25 @@ namespace Windslayer.Server
             m_Statuses[status].ClearStatus();
         }
 
+        // Returns true if the player has a status with the effect of the given status
         public bool Has(Status status)
+        {
+            foreach (Status s in m_Statuses.Keys) {
+                if (((s & status) != 0) && m_Statuses[s].Has()) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        // Returns true only if the player has the exact status specified
+        public bool HasExact(Status status)
         {
             return m_Statuses[status].Has();
         }
 
+        /*
         public bool HasAny(params Status[] list)
         {
             foreach (Status status in list) {
@@ -138,6 +155,7 @@ namespace Windslayer.Server
 
             return false;
         }
+        */
 
         public bool HasAll(params Status[] list)
         {
@@ -158,6 +176,16 @@ namespace Windslayer.Server
         public void AddEndListener(Status status, EventHandler handler)
         {
             m_Statuses[status].OnEnd += handler;
+        }
+
+        public void RemoveStartListener(Status status, EventHandler handler)
+        {
+            m_Statuses[status].OnStart -= handler;
+        }
+
+        public void RemoveEndListener(Status status, EventHandler handler)
+        {
+            m_Statuses[status].OnEnd -= handler;
         }
     }
 }

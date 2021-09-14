@@ -11,10 +11,10 @@ using Windslayer;
 
 namespace Windslayer.Server
 {
-    [RequireComponent(typeof(PlayerConnectionManager))]
+    [RequireComponent(typeof(PlayerConnectionData))]
     public class PlayerCombatInputManager : MonoBehaviour
     {
-        PlayerConnectionManager m_PlayerConnectionManager;
+        PlayerConnectionData m_PlayerConnectionData;
 
         List<bool> m_InputStatesBuffer = new List<bool>( new bool[CombatInputIDs.Count] );
         List<bool> m_JustActivatedInputStates = new List<bool>( new bool[CombatInputIDs.Count] );
@@ -22,7 +22,7 @@ namespace Windslayer.Server
 
         void Awake()
         {
-            m_PlayerConnectionManager = GetComponent<PlayerConnectionManager>();
+            m_PlayerConnectionData = GetComponent<PlayerConnectionData>();
 
             for (int i = 0; i < m_InputStatesBuffer.Count; ++i) {
                 m_InputStatesBuffer[i] = false;
@@ -30,11 +30,11 @@ namespace Windslayer.Server
                 m_InputStates[i] = false;
             }
 
-            if (m_PlayerConnectionManager.Client == null) {
-                Debug.LogError("A player script executed before PlayerConnectionManager - revise script ordering");
+            if (m_PlayerConnectionData.Client == null) {
+                Debug.LogError("A player script executed before PlayerConnectionData - revise script ordering");
             }
 
-            m_PlayerConnectionManager.Client.MessageReceived += MessageReceived;
+            m_PlayerConnectionData.Client.MessageReceived += MessageReceived;
         }
 
         void MessageReceived(object sender, MessageReceivedEventArgs e)

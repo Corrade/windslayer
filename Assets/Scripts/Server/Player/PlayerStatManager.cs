@@ -13,7 +13,7 @@ namespace Windslayer.Server
         [Tooltip("Percentage of damage mitigated by block")]
         public float BlockModifier = 0.5f;
 
-        public int Team { get; set; } = TeamIDs.Spectators;
+        public int Team { get; set; }
 
         public int MaxHealth { get; private set; } = 100;
         public int MaxMana { get; private set; } = 100;
@@ -24,9 +24,6 @@ namespace Windslayer.Server
         public float Mana { get; private set; }
         public int Kills { get; private set; } = 0;
         public int Deaths { get; private set; } = 0;
-        public bool IsDead { get; private set; } = false;
-
-        public event EventHandler OnDeath;
 
         PlayerStatusManager m_PlayerStatusManager;
 
@@ -73,13 +70,12 @@ namespace Windslayer.Server
 
         void HandleDeath(GameObject damageSource)
         {
-            if (IsDead) {
+            if (m_PlayerStatusManager.Has(Status.Dead)) {
                 return;
             }
 
             if (Health <= 0f) {
-                IsDead = true;            
-                OnDeath?.Invoke(this, EventArgs.Empty);
+                m_PlayerStatusManager.StartStatus(Status.Dead, 600);
                 Deaths++;
 
                 PlayerStatManager stat = damageSource.GetComponent<PlayerStatManager>();

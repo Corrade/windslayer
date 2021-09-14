@@ -53,7 +53,7 @@ namespace Windslayer.Server
         
         void FixedUpdate()
         {
-            if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Silenced)) {
+            if (m_PlayerStatusManager.Has(Status.Silenced)) {
                 return;
             }
 

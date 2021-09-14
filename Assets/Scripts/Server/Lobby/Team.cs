@@ -42,8 +42,8 @@ namespace Windslayer.Server
             Players.Add(client, player);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
 
-            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
-            stat.OnDeath += AddDeath;
+            PlayerStatusManager status = player.GetComponent<PlayerStatusManager>();
+            status.AddStartListener(Status.Dead, AddDeath);
         }
 
         public void Remove(IClient client, GameObject player)
@@ -51,8 +51,8 @@ namespace Windslayer.Server
             Players.Remove(client);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
 
-            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
-            stat.OnDeath -= AddDeath;
+            PlayerStatusManager status = player.GetComponent<PlayerStatusManager>();
+            status.RemoveStartListener(Status.Dead, AddDeath);
         }
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)

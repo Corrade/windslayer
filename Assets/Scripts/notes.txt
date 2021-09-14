@@ -104,7 +104,6 @@ if you're hit while in attacker stun (and possibly other stuns), you immediately
 
 
 
-
 abilities https://docs.google.com/spreadsheets/d/1QUnXIzWVExO5JoW9OS_05YbLq0kzF8RGI3YQcIGdbmk/edit?usp=drive_web&ouid=108112850293498042381
 
 oo https://docs.google.com/document/d/1tVc7g_WdPEFBj_nemLt3S26gVPeTTZRs0MWle653z_Q/edit
@@ -121,7 +120,7 @@ oo https://docs.google.com/document/d/1tVc7g_WdPEFBj_nemLt3S26gVPeTTZRs0MWle653z
         - needless complexity: contains constructs that are not currently useful. usually a symptom of developers being too far ahead of requirements
         - needless repetition
         - data clumps: different sections of code contain identical clumps of data, e.g. fields in many classes, parameters in many methods. consider consolidating these things into a new class and passing around larger objects, e.g. entire ‘classes’ rather than fields
-        - refused bequest: when a subclass doesn’t use or must redefine something in the superclass. consider revising the inheritance and pushing fields and methods from the superclass into subclasses. e.g. if an engineer class inherits an employee class that is mostly suitable but has sales quota fields and methods that the engineer never uses, one should consider moving that sales information to a salesperson subclass
+        - refused bequest: when a subclass doesn’t use or must redefine something in the superclass. e.g. if an engineer class inherits an employee class that is mostly suitable but has sales quota fields and methods that the engineer never uses, one should consider moving that sales information to a salesperson subclass
         - switch statements. prefer polymorphism and consider the strategy pattern
 
     characteristics of good design
@@ -145,31 +144,11 @@ oo https://docs.google.com/document/d/1tVc7g_WdPEFBj_nemLt3S26gVPeTTZRs0MWle653z
         - move methods so that they belong to the class of whose data they use the most
         - encapsulate to protect, e.g. setters and getters
         - program to an interface, not an implementation
+        - separate concerns; divide and conquer
         - when implementing different variations of an entity, favour polymorphism/subclassing over conditional logic with variables
             - not suitable if you need to be able to change variations
             - not suitable if it’ll result in an overwhelming number of classes, particularly if there are multiple things being varied
         - favor composition over inheritance
-
-c#
-    public: access is not restricted.
-    protected: access is limited to the containing class or types derived from the containing class.
-    internal: access is limited to the current assembly.
-    protected internal: access is limited to the current assembly or types derived from the containing class.
-    private: access is limited to the containing type.
-    private protected: access is limited to the containing class or types derived from the containing class within the current assembly. available since c# 7.2.
-
-
-    virtual vs abstract
-        an abstract function cannot have functionality. you're basically saying, any child class must give their own version of this method, however it's too general to even try to implement in the parent class.
-
-        a virtual function, is basically saying look, here's the functionality that may or may not be good enough for the child class. so if it is good enough, use this method, if not, then override me, and provide your own functionality. and remember you can reference this the parent's implemention from the child using the base keyword, so there's still a point to specifying a virtual function that's always gonna be overriden.
-
-    singleton vs static stuff
-        A singleton allows access to a single created instance - that instance (or rather, a reference to that instance) can be passed as a parameter to other methods, and treated as a normal object.
-
-        A static class allows only static methods.
-
-        Plus static variables can't be exposed to the editor.
 
     design patterns
         https://en.wikipedia.org/wiki/Software_design_pattern#Classification_and_list

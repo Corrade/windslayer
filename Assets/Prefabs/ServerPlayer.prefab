@@ -13,11 +13,11 @@ GameObject:
   - component: {fileID: 1424467388907417345}
   - component: {fileID: 1424467388907417344}
   - component: {fileID: 1424467388907417348}
-  - component: {fileID: 6871748663227227274}
   - component: {fileID: 1424467388907417351}
   - component: {fileID: 1424467388907417349}
   - component: {fileID: 1424467388907417402}
   - component: {fileID: 2221359087916017824}
+  - component: {fileID: 6498151816857507718}
   m_Layer: 0
   m_Name: ServerPlayer
   m_TagString: Untagged
@@ -157,18 +157,6 @@ MonoBehaviour:
   StrongAttackGroundPrefab: {fileID: -4723410548490246210, guid: 012631d417493d640aa40970396bfb37, type: 3}
   BlockPrefab: {fileID: 9027655452659734193, guid: 450e666fd0c580b4a918f4da5966bfab, type: 3}
   DashPrefab: {fileID: 7211576117566097937, guid: 5552e44dd0a8768418f10c6c64f06022, type: 3}
---- !u!114 &6871748663227227274
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1424467388907417356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d883a172e90bf74f822a33fd4a87128, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1424467388907417351
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,7 +193,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   BlockModifier: 0.5
-  Team: 0
 --- !u!114 &1424467388907417402
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -228,6 +215,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 169a6bb229be10f48bbba6a703a316b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &6498151816857507718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1424467388907417356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33336fbf662a22d4eb3530c03b7fa700, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1424467389327683520

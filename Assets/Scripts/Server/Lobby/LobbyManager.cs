@@ -15,7 +15,7 @@ namespace Windslayer.Server
     public class LobbyManager : MonoBehaviour
     {
         [SerializeField]
-        GameObject PlayerClientPrefab;
+        GameObject PlayerManagerPrefab;
         
         [SerializeField]
         List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
@@ -23,9 +23,13 @@ namespace Windslayer.Server
         XmlUnityServer m_XmlServer;
 
         LobbySettingsMsg m_Settings;
-        Dictionary<IClient, GameObject> m_PlayerClients = new Dictionary<IClient, GameObject>();
-        List<Team> m_Teams = new List<Team>( new Team[TeamIDs.CountNoSpec] );
+
+        Dictionary<IClient, GameObject> m_PlayerManagers = new Dictionary<IClient, GameObject>();
+        List<IClient> m_HostOrder = new List<IClient>();
+
+        List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
         Team m_SpecTeam;
+
         Map m_CurrentMap;
         EventHandler m_TimeLimitEvent;
         bool m_GameStarted = false;
@@ -49,14 +53,19 @@ namespace Windslayer.Server
                 Application.Quit();
             }
 
+            for (int i = 0; i < TeamIDs.Count; ++i) {
+                m_Teams[i] = new Team();
+                m_Teams[i].OnTotalKillsChange += CheckEndByKills;
+            }
+
             m_XmlServer.Server.ClientManager.ClientConnected += ClientConnected;
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
-        // Replaces m_Settings with the valid fields of settings (a client should never send invalid settings unless they're malicious, so there's no need for error messages)
+        // Replaces m_Settings with the fields of settings that are valid. A client should never send invalid settings unless they're malicious, so there's no need for error messages. Also, since m_Settings begins with valid default values and only changes to valid values, it will always be valid.
         void ReplaceLobbySettings(LobbySettingsMsg settings)
         {
-            if (settings.MaxPlayers < 2 || settings.MaxPlayers % 2 != 0 || settings.MaxPlayers < m_PlayerClients.Count) {
+            if (settings.MaxPlayers < 2 || settings.MaxPlayers % 2 != 0 || settings.MaxPlayers < m_PlayerManagers.Count) {
                 settings.MaxPlayers = m_Settings.MaxPlayers;
             }
 
@@ -89,39 +98,40 @@ namespace Windslayer.Server
             });
 
             for (ushort i = 0; i < m_Teams.Count; ++i) {
-                m_Teams[i].OnTotalKillsChange += CheckEndByKills;
                 m_CurrentMap.MoveTeamToSpawn(i, m_Teams[i]);
             }
 
             m_GameStarted = true;
         }
 
+        // Should be called when times runs out. If there is a team with strictly the most kills, they win. Otherwise the game draws.
         void Timeout()
         {
             if (!m_GameStarted) {
                 return;
             }
 
-            List<ushort> teamIDsWithMostKills = new List<ushort>();
+            List<Team> topTeams = new List<Team>();
             int mostKills = -1;
 
-            for (ushort i = 0; i < m_Teams.Count; ++i) {
-                if (m_Teams[i].TotalKills == mostKills) {
-                    teamIDsWithMostKills.Add(i);
-                } else if (m_Teams[i].TotalKills > mostKills) {
-                    teamIDsWithMostKills.Clear();
-                    teamIDsWithMostKills.Add(i);
-                    mostKills = m_Teams[i].TotalKills;
+            foreach (Team team in m_Teams) {
+                if (team.TotalKills == mostKills) {
+                    topTeams.Add(team);
+                } else if (team.TotalKills > mostKills) {
+                    topTeams.Clear();
+                    topTeams.Add(team);
+                    mostKills = team.TotalKills;
                 }
             }
 
-            if (teamIDsWithMostKills.Count == 1) {
-                EndGame(m_Teams[teamIDsWithMostKills[0]]);
+            if (topTeams.Count == 1) {
+                EndGame(topTeams[0]);
             } else {
                 EndGame(null);
             }
         }
 
+        // If there is only one team left with a player, they win. If there are no teams with any players, the game draws. Otherwise nothing happens.
         void CheckEndByDisconnect()
         {
             if (!m_GameStarted) {
@@ -139,6 +149,7 @@ namespace Windslayer.Server
             }
         }
 
+        // If a team has exceeded the total kill limit, they win. Otherwise nothing happens.
         void CheckEndByKills(object sender, EventArgs e)
         {
             if (!m_GameStarted) {
@@ -173,17 +184,12 @@ namespace Windslayer.Server
 
         void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            GameObject playerClient = Instantiate(PlayerClientPrefab, Vector2.zero, Quaternion.identity);
+            GameObject p = Instantiate(PlayerManagerPrefab, Vector2.zero, Quaternion.identity);
 
-            if (player.activeSelf) {
-                Debug.LogError("Player should not begin active");
-            }
+            PlayerManager manager = p.GetComponent<PlayerManager>();
+            manager.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
 
-            PlayerConnectionManager conn = player.GetComponent<PlayerConnectionManager>();
-            conn.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
-            m_PlayerClients.Add(e.Client, player);
-
-            playerClient.SetActive(true);
+            m_HostOrder.Add(e.Client);
 
             /*
             broadcast just the player client here
@@ -200,7 +206,7 @@ namespace Windslayer.Server
 
             // Broadcast all players (including the new player itself) to the new player
             using (DarkRiftWriter w = DarkRiftWriter.Create()) {
-                foreach (GameObject p in m_PlayerClients.Values) {
+                foreach (GameObject p in m_PlayerManagers.Values) {
                     PlayerConnectionManager c = p.GetComponent<PlayerConnectionManager>();
                     w.Write(new SpawnPlayerMsg(c.ClientID));
                 }
@@ -214,7 +220,8 @@ namespace Windslayer.Server
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            m_PlayerClients.Remove(e.Client);
+            m_PlayerManagers.Remove(e.Client);
+            m_HostOrder.Remove(e.Client);
 
             using (Message msg = Message.Create(
                 Tags.DespawnPlayer,

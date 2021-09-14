@@ -13,7 +13,7 @@ namespace Windslayer.Server
 {
     // Receiving movement-related input from the associated player and communicating it
 
-    [RequireComponent(typeof(PlayerConnectionManager)), RequireComponent(typeof(PlayerCombatInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(BoxCollider2D)), RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(PlayerConnectionData)), RequireComponent(typeof(PlayerCombatInputManager)), RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(BoxCollider2D)), RequireComponent(typeof(Rigidbody2D))]
     public class PlayerMovementManager : MonoBehaviour
     {
         [Tooltip("Distance from the bottom of the character to raycast for the ground")]
@@ -64,7 +64,7 @@ namespace Windslayer.Server
         public bool IsGrounded { get; private set; }
         public bool IsFacingLeft { get; private set; }
 
-        PlayerConnectionManager m_PlayerConnectionManager;
+        PlayerConnectionData m_PlayerConnectionData;
         PlayerCombatInputManager m_PlayerCombatInputManager;
         PlayerStatusManager m_PlayerStatusManager;
         BoxCollider2D m_CollisionCollider;
@@ -89,7 +89,7 @@ namespace Windslayer.Server
 
         void Awake()
         {
-            m_PlayerConnectionManager = GetComponent<PlayerConnectionManager>();
+            m_PlayerConnectionData = GetComponent<PlayerConnectionData>();
             m_PlayerCombatInputManager = GetComponent<PlayerCombatInputManager>();
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
             m_CollisionCollider = GetComponent<BoxCollider2D>();
@@ -98,7 +98,7 @@ namespace Windslayer.Server
 
         void FixedUpdate()
         {
-            if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
+            if (m_PlayerStatusManager.Has(Status.Suspended)) {
                 // But do not reset CandidateVelocity as to preserve it once these statuses clear
                 StopJump();
                 return;
@@ -124,6 +124,15 @@ namespace Windslayer.Server
 
             SetFacingDirection();
             Broadcast();
+        }
+
+        public void Teleport(Vector3 to, bool preserveVelocity = false)
+        {
+            if (!preserveVelocity) {
+                CandidateVelocity = Vector2.zero;
+            }
+
+            m_RB2D.MovePosition(to);
         }
 
         // Set the velocity of the player to the result of the given function for the given amount of frames, ignoring regular velocity calculations (normal input processing, gravity). The function is guaranteed to override the velocity in at least one calculation.
@@ -275,9 +284,9 @@ namespace Windslayer.Server
 
         float GetMoveInput()
         {
-            if (m_PlayerStatusManager.HasAny(Status.Stunned, Status.Suspended)) {
+            if (m_PlayerStatusManager.Has(Status.Suspended)) {
                 return 0.0f;
-            } else if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Casting)) {
+            } else if (m_PlayerStatusManager.Has(Status.Rooted)) {
                 if (!IsGrounded) {
                     return m_PreviousMoveInput;
                 } else {
@@ -290,7 +299,7 @@ namespace Windslayer.Server
 
         bool IsDropActive()
         {
-            if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
+            if (m_PlayerStatusManager.Has(Status.Rooted) || m_PlayerStatusManager.Has(Status.Suspended)) {
                 return false;
             }
 
@@ -299,7 +308,7 @@ namespace Windslayer.Server
 
         bool IsJumpActive()
         {
-            if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
+            if (m_PlayerStatusManager.Has(Status.Rooted) || m_PlayerStatusManager.Has(Status.Suspended)) {
                 return false;
             }
 
@@ -308,7 +317,7 @@ namespace Windslayer.Server
 
         bool IsJumpJustActivated()
         {
-            if (m_PlayerStatusManager.HasAny(Status.Rooted, Status.Stunned, Status.Suspended, Status.Casting)) {
+            if (m_PlayerStatusManager.Has(Status.Rooted) || m_PlayerStatusManager.Has(Status.Suspended)) {
                 return false;
             }
 
@@ -439,9 +448,9 @@ namespace Windslayer.Server
         {
             using (Message msg = Message.Create(
                 Tags.MovePlayer,
-                new MovePlayerMsg(m_PlayerConnectionManager.ClientID, m_CandidatePosition, IsFacingLeft)
+                new MovePlayerMsg(m_PlayerConnectionData.ClientID, m_CandidatePosition, IsFacingLeft)
             )) {
-                foreach (IClient client in m_PlayerConnectionManager.Server.ClientManager.GetAllClients()) {
+                foreach (IClient client in m_PlayerConnectionData.Server.ClientManager.GetAllClients()) {
                     client.SendMessage(msg, SendMode.Unreliable);
                 }
             }

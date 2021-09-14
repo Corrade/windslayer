@@ -19,25 +19,16 @@ namespace Windslayer.Server
             public List<Transform> SpawnPoints = new List<Transform>();
         }
 
+        [Tooltip("An array of each team's list of spawn points")]
         [SerializeField]
-        List<SpawnPointArray> TeamSpawnSets = new List<SpawnPointArray>( new SpawnPointArray[TeamIDs.CountNoSpec] );
+        List<SpawnPointArray> TeamSpawns = new List<SpawnPointArray>( new SpawnPointArray[TeamIDs.Count] );
 
         System.Random m_Rnd = new System.Random();
 
-        public void MoveTeamToSpawn(ushort teamID, Team team)
+        public Vector3 GetRandomSpawn(ushort teamID)
         {
-            List<Transform> spawnPoints = TeamSpawnSets[teamID].SpawnPoints;
-
-            foreach (GameObject player in team.Players.Values) {
-                player.transform.position = spawnPoints[m_Rnd.Next(spawnPoints.Count)].position;
-            }
-        }
-
-        public void MovePlayerToSpawn(ushort teamID, GameObject player)
-        {
-            List<Transform> spawnPoints = TeamSpawnSets[teamID].SpawnPoints;
-
-            player.transform.position = spawnPoints[m_Rnd.Next(spawnPoints.Count)].position;
+            List<Transform> spawns = TeamSpawns[teamID].SpawnPoints;
+            return spawns[m_Rnd.Next(spawns.Count)].position;
         }
     }
 }

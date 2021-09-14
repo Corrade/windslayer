@@ -133,8 +133,8 @@ GameObject:
   m_Component:
   - component: {fileID: 365829299}
   - component: {fileID: 365829298}
-  - component: {fileID: 365829300}
   - component: {fileID: 365829301}
+  - component: {fileID: 365829300}
   m_Layer: 0
   m_Name: Server
   m_TagString: Untagged
@@ -180,12 +180,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 365829297}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 909970505ed22504e93ede3a09db7154, type: 3}
+  m_Script: {fileID: 11500000, guid: 49d8616028ba00843b60f592300a9e7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PlayerPrefab: {fileID: 0}
+  PlayerManagerPrefab: {fileID: 4041548822241959476, guid: f6c0c8e4a5b927446bee54200d1cc27c, type: 3}
   Maps:
-  - {fileID: 2961123000318494355, guid: 6a1a56b9c6729f242b07a2943c3a9c76, type: 3}
+  - {fileID: 0}
 --- !u!114 &365829301
 MonoBehaviour:
   m_ObjectHideFlags: 0
