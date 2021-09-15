@@ -18,7 +18,7 @@ namespace Windslayer.Server
             base.Hit(other);
 
             PlayerStatusManager status = other.GetComponent<PlayerStatusManager>();
-            if (status && !status.Has(Status.Blocking)) {
+            if (status && !status.Is(Status.Blocking)) {
                 m_PlayerStatusManager.StartStatus(Status.Stunned, AttackerStun);
             }
         }

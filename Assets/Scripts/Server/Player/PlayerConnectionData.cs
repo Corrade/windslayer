@@ -16,12 +16,15 @@ namespace Windslayer.Server
         public ushort ClientID { get; private set; }
         public IClient Client { get; private set; }
         public DarkRiftServer Server { get; private set; }
-        
-        public void Initialise(ushort clientID, IClient client, DarkRiftServer server)
+        public LobbyManager Lobby { get; private set; }
+        public ushort TeamID { get; set; }
+
+        public void Initialise(ushort clientID, IClient client, DarkRiftServer server, LobbyManager lobby)
         {
             ClientID = clientID;
             Client = client;
             Server = server;
+            Lobby = lobby;
         }
     }
 }

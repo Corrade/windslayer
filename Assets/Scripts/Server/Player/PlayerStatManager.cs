@@ -7,13 +7,11 @@ using Windslayer;
 
 namespace Windslayer.Server
 {
-    [RequireComponent(typeof(PlayerStatusManager))]
+    [RequireComponent(typeof(PlayerStatusManager)), RequireComponent(typeof(PlayerConnectionData))]
     public class PlayerStatManager : MonoBehaviour
     {
         [Tooltip("Percentage of damage mitigated by block")]
         public float BlockModifier = 0.5f;
-
-        public int Team { get; set; }
 
         public int MaxHealth { get; private set; } = 100;
         public int MaxMana { get; private set; } = 100;
@@ -25,10 +23,14 @@ namespace Windslayer.Server
         public int Kills { get; private set; } = 0;
         public int Deaths { get; private set; } = 0;
 
+        public event EventHandler OnKillsChanged;
+
+        PlayerConnectionData m_PlayerConnectionData;
         PlayerStatusManager m_PlayerStatusManager;
 
         void Awake()
         {
+            m_PlayerConnectionData = GetComponent<PlayerConnectionData>();
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
 
             Health = MaxHealth;
@@ -37,7 +39,7 @@ namespace Windslayer.Server
 
         public void TakeDamage(float damage, GameObject damageSource, bool affectedByBlock)
         {
-            if (!m_PlayerStatusManager.Has(Status.Invincible)) {
+            if (!m_PlayerStatusManager.Is(Status.Invincible)) {
                 // float healthBefore = Health;
                 Health -= DamageFormula(damage, affectedByBlock);
                 Health = Mathf.Clamp(Health, 0f, MaxHealth);
@@ -51,7 +53,7 @@ namespace Windslayer.Server
         {
             float finalDamage = rawDamage;
 
-            if (affectedByBlock && m_PlayerStatusManager.Has(Status.Blocking)) {
+            if (affectedByBlock && m_PlayerStatusManager.Is(Status.Blocking)) {
                 finalDamage *= BlockModifier;
             }
 
@@ -68,19 +70,25 @@ namespace Windslayer.Server
             TakeDamage(MaxHealth, null, false);
         }
 
+        public void IncreaseKill()
+        {
+            ++Kills;
+            OnKillsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         void HandleDeath(GameObject damageSource)
         {
-            if (m_PlayerStatusManager.Has(Status.Dead)) {
+            if (m_PlayerStatusManager.Is(Status.Dead)) {
                 return;
             }
 
             if (Health <= 0f) {
-                m_PlayerStatusManager.StartStatus(Status.Dead, 600);
+                m_PlayerStatusManager.StartStatus(Status.Dead, m_PlayerConnectionData.Lobby.Settings.RespawnTime);
                 Deaths++;
 
                 PlayerStatManager stat = damageSource.GetComponent<PlayerStatManager>();
                 if (stat && stat != m_PlayerStatusManager) {
-                    stat.Kills++;
+                    stat.IncreaseKill();
                 }
             }
         }

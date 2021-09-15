@@ -20,41 +20,31 @@ namespace Windslayer.Server
         public ushort ClientID { get; private set; }
         public IClient Client { get; private set; }
         public DarkRiftServer Server { get; private set; }
-        public GameObject Player { get; private set; }
-        //team
+        public GameObject Player { get; private set; } = null;
 
-        //respawn
+        LobbyManager m_Lobby;
+        ushort m_teamID;
 
-        public void Initialise(ushort clientID, IClient client, DarkRiftServer server)
+        public void Initialise(ushort clientID, IClient client, DarkRiftServer server, LobbyManager lobby)
         {
             ClientID = clientID;
             Client = client;
             Server = server;
+            m_Lobby = lobby;
         }
 
-        public void Spawn(Vector3 position)
+        public void Spawn()
         {
-            Player = Instantiate(PlayerPrefab, position, Quaternion.identity);
+            Player = Instantiate(PlayerPrefab, m_Lobby.CurrentMap.GetRandomSpawn(m_teamID), Quaternion.identity);
 
             if (Player.activeSelf) {
                 Debug.LogError("In-game player should not begin active");
             }
 
             PlayerConnectionData conn = Player.GetComponent<PlayerConnectionData>();
-            conn.Initialise(ClientID, Client, Server);
+            conn.Initialise(ClientID, Client, Server, m_Lobby);
 
             Player.SetActive(true);
-            // set team variable
-
-            PlayerStatusManager status = Player.GetComponent<PlayerStatusManager>();
-            status.AddEndListener(Status.Dead, Respawn);
-
-        }
-
-        void Respawn(object sender, EventArgs e)
-        {
-            PlayerMovementManager movement = Player.GetComponent<PlayerMovementManager>();
-            movement.Teleport(Vector2.zero);
         }
 
         public void Despawn()

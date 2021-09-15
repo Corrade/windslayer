@@ -20,9 +20,10 @@ namespace Windslayer.Server
         [SerializeField]
         List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
 
-        XmlUnityServer m_XmlServer;
+        public LobbySettingsMsg Settings { get; private set; }
+        public Map CurrentMap { get; private set; }
 
-        LobbySettingsMsg m_Settings;
+        XmlUnityServer m_XmlServer;
 
         Dictionary<IClient, GameObject> m_PlayerManagers = new Dictionary<IClient, GameObject>();
         List<IClient> m_HostOrder = new List<IClient>();
@@ -30,7 +31,6 @@ namespace Windslayer.Server
         List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
         Team m_SpecTeam;
 
-        Map m_CurrentMap;
         EventHandler m_TimeLimitEvent;
         bool m_GameStarted = false;
 
@@ -62,43 +62,24 @@ namespace Windslayer.Server
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
-        // Replaces m_Settings with the fields of settings that are valid. A client should never send invalid settings unless they're malicious, so there's no need for error messages. Also, since m_Settings begins with valid default values and only changes to valid values, it will always be valid.
-        void ReplaceLobbySettings(LobbySettingsMsg settings)
-        {
-            if (settings.MaxPlayers < 2 || settings.MaxPlayers % 2 != 0 || settings.MaxPlayers < m_PlayerManagers.Count) {
-                settings.MaxPlayers = m_Settings.MaxPlayers;
-            }
-
-            if (settings.MapID < 0 || settings.MapID >= MapIDs.Count) {
-                settings.MapID = m_Settings.MapID;
-            }
-
-            if (settings.RespawnTime < 0) {
-                settings.RespawnTime = m_Settings.RespawnTime;
-            }
-
-            if (settings.KillLimit < 0) {
-                settings.KillLimit = m_Settings.KillLimit;
-            }
-
-            if (settings.TimeLimit < 0) {
-                settings.TimeLimit = m_Settings.TimeLimit;
-            }
-
-            m_Settings = settings;
-        }
 
         void StartGame()
         {
-            m_CurrentMap = Instantiate(Maps[m_Settings.MapID], Vector2.zero, Quaternion.identity);
+            CurrentMap = Instantiate(Maps[Settings.MapID], Vector2.zero, Quaternion.identity);
 
-            m_TimeLimitEvent = Clock.Wait(Sync.Tickrate * (uint)m_Settings.TimeLimit, () => {
+            m_TimeLimitEvent = Clock.Wait(Sync.Tickrate * (uint)Settings.TimeLimit, () => {
                 Debug.Log("Time ran out");
                 Timeout();
             });
 
-            for (ushort i = 0; i < m_Teams.Count; ++i) {
-                m_CurrentMap.MoveTeamToSpawn(i, m_Teams[i]);
+            foreach (Team team in m_Teams) {
+                foreach (PlayerManager playerManager in team.Players.Values) {
+                    if (playerManager != null) {
+                        Debug.Log("Player should not be instantiated before the start of the game");
+                    }
+
+                    playerManager.Spawn();
+                }
             }
 
             m_GameStarted = true;
@@ -157,7 +138,7 @@ namespace Windslayer.Server
             }
 
             foreach (Team team in m_Teams) {
-                if (team.TotalKills >= m_Settings.KillLimit) {
+                if (team.TotalKills >= Settings.KillLimit) {
                     EndGame(team);
                 }
             }
@@ -176,7 +157,13 @@ namespace Windslayer.Server
             Clock.StopWait(m_TimeLimitEvent);
 
             foreach (Team team in m_Teams) {
-                team.OnTotalKillsChange -= CheckEndByKills;
+                foreach (PlayerManager playerManager in team.Players.Values) {
+                    if (playerManager == null) {
+                        Debug.Log("Team should not have a null player at the end of a game");
+                    }
+
+                    playerManager.Despawn();
+                }
             }
 
             Debug.Log("Game ended");
@@ -187,7 +174,7 @@ namespace Windslayer.Server
             GameObject p = Instantiate(PlayerManagerPrefab, Vector2.zero, Quaternion.identity);
 
             PlayerManager manager = p.GetComponent<PlayerManager>();
-            manager.Initialise(e.Client.ID, e.Client, m_XmlServer.Server);
+            manager.Initialise(e.Client.ID, e.Client, m_XmlServer.Server, this);
 
             m_HostOrder.Add(e.Client);
 

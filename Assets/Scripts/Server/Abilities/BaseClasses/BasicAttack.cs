@@ -23,9 +23,9 @@ namespace Windslayer.Server
 
         protected virtual bool IsTarget(GameObject other)
         {
-            PlayerStatManager stat = other.GetComponent<PlayerStatManager>();
-            if (stat) {
-                return m_PlayerStatManager.Team != stat.Team;
+            PlayerConnectionData conn = other.GetComponent<PlayerConnectionData>();
+            if (conn) {
+                return m_PlayerConnectionData.TeamID != conn.TeamID;
             }
 
             return false;
@@ -40,7 +40,7 @@ namespace Windslayer.Server
 
             PlayerStatusManager status = other.GetComponent<PlayerStatusManager>();
             if (status) {
-                if (status.Has(Status.Blocking)) {
+                if (status.Is(Status.Blocking)) {
                     status.StartStatus(Status.Stunned, HitStun / 2);
                     status.StartStatus(Status.Invincible, HitStun / 2);
                 } else {

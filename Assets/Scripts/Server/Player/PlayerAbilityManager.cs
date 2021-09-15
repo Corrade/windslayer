@@ -53,7 +53,7 @@ namespace Windslayer.Server
         
         void FixedUpdate()
         {
-            if (m_PlayerStatusManager.Has(Status.Silenced)) {
+            if (m_PlayerStatusManager.Is(Status.Silenced)) {
                 return;
             }
 
@@ -66,7 +66,7 @@ namespace Windslayer.Server
                 }
             }
 
-            if (m_PlayerStatusManager.Has(Status.Casting)) {
+            if (m_PlayerStatusManager.Is(Status.Casting)) {
                 return;
             }
 

@@ -90,7 +90,7 @@ namespace Windslayer.Server
                 OnEnd?.Invoke(this, EventArgs.Empty);
             }
 
-            public bool Has()
+            public bool Is()
             {
                 return m_TicksRemaining > 0;
             }
@@ -127,10 +127,10 @@ namespace Windslayer.Server
         }
 
         // Returns true if the player has a status with the effect of the given status
-        public bool Has(Status status)
+        public bool Is(Status status)
         {
             foreach (Status s in m_Statuses.Keys) {
-                if (((s & status) != 0) && m_Statuses[s].Has()) {
+                if (((s & status) != 0) && m_Statuses[s].Is()) {
                     return true;
                 }
             }
@@ -139,16 +139,16 @@ namespace Windslayer.Server
         }
 
         // Returns true only if the player has the exact status specified
-        public bool HasExact(Status status)
+        public bool IsExact(Status status)
         {
-            return m_Statuses[status].Has();
+            return m_Statuses[status].Is();
         }
 
         /*
         public bool HasAny(params Status[] list)
         {
             foreach (Status status in list) {
-                if (m_Statuses[status].Has()) {
+                if (m_Statuses[status].Is()) {
                     return true;
                 }
             }
@@ -160,7 +160,7 @@ namespace Windslayer.Server
         public bool HasAll(params Status[] list)
         {
             foreach (Status status in list) {
-                if (!m_Statuses[status].Has()) {
+                if (!m_Statuses[status].Is()) {
                     return false;
                 }
             }

@@ -14,7 +14,7 @@ namespace Windslayer.Server
 {
     public class Team : MonoBehaviour
     {
-        public Dictionary<IClient, GameObject> Players { get; private set; } = new Dictionary<IClient, GameObject>();
+        public Dictionary<IClient, PlayerManager> Players { get; private set; } = new Dictionary<IClient, PlayerManager>();
         public int TotalKills { get; private set; } = 0;
 
         public event EventHandler OnTeamSizeChange;
@@ -37,22 +37,22 @@ namespace Windslayer.Server
             return Players.Keys.Count;
         }
 
-        public void Add(IClient client, GameObject player)
+        public void Add(IClient client, PlayerManager player)
         {
             Players.Add(client, player);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
 
-            PlayerStatusManager status = player.GetComponent<PlayerStatusManager>();
-            status.AddStartListener(Status.Dead, AddDeath);
+            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
+            stat.OnKillsChanged += AddKill;
         }
 
-        public void Remove(IClient client, GameObject player)
+        public void Remove(IClient client, PlayerManager player)
         {
             Players.Remove(client);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
 
-            PlayerStatusManager status = player.GetComponent<PlayerStatusManager>();
-            status.RemoveStartListener(Status.Dead, AddDeath);
+            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
+            stat.OnKillsChanged -= AddKill;
         }
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
@@ -60,8 +60,8 @@ namespace Windslayer.Server
             Players.Remove(e.Client);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
         }
-        
-        void AddDeath(object sender, EventArgs e)
+
+        void AddKill(object sender, EventArgs e)
         {
             ++TotalKills;
             OnTotalKillsChange?.Invoke(this, EventArgs.Empty);

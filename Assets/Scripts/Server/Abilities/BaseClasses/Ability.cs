@@ -20,7 +20,7 @@ namespace Windslayer.Server
         protected GameObject m_Player;
         protected PlayerStatusManager m_PlayerStatusManager;
         protected PlayerMovementManager m_PlayerMovementManager;
-        protected PlayerStatManager m_PlayerStatManager;
+        protected PlayerConnectionData m_PlayerConnectionData;
         Coroutine m_Coroutine;
 
         public virtual void Initialise(GameObject player)
@@ -28,7 +28,7 @@ namespace Windslayer.Server
             m_Player = player;
             m_PlayerStatusManager = player.GetComponent<PlayerStatusManager>();
             m_PlayerMovementManager = player.GetComponent<PlayerMovementManager>();
-            m_PlayerStatManager = player.GetComponent<PlayerStatManager>();
+            m_PlayerConnectionData = player.GetComponent<PlayerConnectionData>();
             m_Coroutine = StartCoroutine(Run());
         }
 

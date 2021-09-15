@@ -94,11 +94,16 @@ namespace Windslayer.Server
             m_PlayerStatusManager = GetComponent<PlayerStatusManager>();
             m_CollisionCollider = GetComponent<BoxCollider2D>();
             m_RB2D = GetComponent<Rigidbody2D>();
+
+            // Respawning
+            m_PlayerStatusManager.AddEndListener(Status.Dead, (object sender, EventArgs e) => {
+                Teleport(m_PlayerConnectionData.Lobby.CurrentMap.GetRandomSpawn(m_PlayerConnectionData.TeamID));
+            });
         }
 
         void FixedUpdate()
         {
-            if (m_PlayerStatusManager.Has(Status.Suspended)) {
+            if (m_PlayerStatusManager.Is(Status.Suspended)) {
                 // But do not reset CandidateVelocity as to preserve it once these statuses clear
                 StopJump();
                 return;
@@ -284,9 +289,9 @@ namespace Windslayer.Server
 
         float GetMoveInput()
         {
-            if (m_PlayerStatusManager.Has(Status.Suspended)) {
+            if (m_PlayerStatusManager.Is(Status.Suspended)) {
                 return 0.0f;
-            } else if (m_PlayerStatusManager.Has(Status.Rooted)) {
+            } else if (m_PlayerStatusManager.Is(Status.Rooted)) {
                 if (!IsGrounded) {
                     return m_PreviousMoveInput;
                 } else {
@@ -299,7 +304,7 @@ namespace Windslayer.Server
 
         bool IsDropActive()
         {
-            if (m_PlayerStatusManager.Has(Status.Rooted) || m_PlayerStatusManager.Has(Status.Suspended)) {
+            if (m_PlayerStatusManager.Is(Status.Rooted) || m_PlayerStatusManager.Is(Status.Suspended)) {
                 return false;
             }
 
@@ -308,7 +313,7 @@ namespace Windslayer.Server
 
         bool IsJumpActive()
         {
-            if (m_PlayerStatusManager.Has(Status.Rooted) || m_PlayerStatusManager.Has(Status.Suspended)) {
+            if (m_PlayerStatusManager.Is(Status.Rooted) || m_PlayerStatusManager.Is(Status.Suspended)) {
                 return false;
             }
 
@@ -317,7 +322,7 @@ namespace Windslayer.Server
 
         bool IsJumpJustActivated()
         {
-            if (m_PlayerStatusManager.Has(Status.Rooted) || m_PlayerStatusManager.Has(Status.Suspended)) {
+            if (m_PlayerStatusManager.Is(Status.Rooted) || m_PlayerStatusManager.Is(Status.Suspended)) {
                 return false;
             }
 
