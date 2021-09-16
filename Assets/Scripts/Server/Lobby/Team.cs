@@ -12,20 +12,13 @@ using Windslayer;
 
 namespace Windslayer.Server
 {
-    public class Team : MonoBehaviour
+    public class Team
     {
         public Dictionary<IClient, PlayerManager> Players { get; private set; } = new Dictionary<IClient, PlayerManager>();
         public int TotalKills { get; private set; } = 0;
 
         public event EventHandler OnTeamSizeChange;
         public event EventHandler OnTotalKillsChange;
-
-        XmlUnityServer m_XmlServer;
-
-        void Awake()
-        {
-            m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
-        }
 
         public void ResetKills()
         {
@@ -55,9 +48,9 @@ namespace Windslayer.Server
             stat.OnKillsChanged -= AddKill;
         }
 
-        void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
+        public void RemoveByDisconnect(IClient client)
         {
-            Players.Remove(e.Client);
+            Players.Remove(client);
             OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
         }
 

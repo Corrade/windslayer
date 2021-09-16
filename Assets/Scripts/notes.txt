@@ -172,3 +172,44 @@ networking
     During each tick, the server processes incoming user commands, runs a physical simulation step, checks the game rules, and updates all object states.
 
 
+
+@SandwichBop I use Vultr.com to host most of my servers, $5 USD/month for a vps, 1 GB RAM, 1 CPU, heaps of bandwidth
+DigitalOcean's a good contender
+
+
+
+
+PLAYER CONNECTIONS
+    client connects. server creates player manager.
+    client -> PlayerMetadataMsg -> server
+    server -> PlayerMetadataMsg -> ALL (clients register the new player)
+
+    client disconnects.
+    server -> DisconnectPlayerMsg -> ALL (remember to remove from team)
+
+LOBBY AND TEAM
+    client -> LobbySettingsMsg -> server (if host)
+    server -> LobbySettingsMsg -> ALL
+
+    client -> TeamSelectMsg -> server (id must match)
+    server -> TeamSelectMsg -> ALL
+
+    server -> WinConditionsStateMsg -> ALL (team kill count, time left)
+
+    client -> GameStartMsg -> server (if host)
+    server spawn map, start timer, spawn players
+    server -> SpawnPlayerMsg -> ALL (for each player spawned)
+    server -> GameStartMsg -> ALL
+
+    server -> DespawnPlayerMsg -> ALL (disconnect posssibly, team swap, match end)
+
+    server -> GameEndMsg -> ALL
+
+GAMEPLAY
+    client -> PlayerCombatInputMsg -> server
+    server -> player movement, player status, player used ability, player got a kill
+
+
+
+
+

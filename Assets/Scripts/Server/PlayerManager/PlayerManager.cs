@@ -17,17 +17,17 @@ namespace Windslayer.Server
         [SerializeField]
         GameObject PlayerPrefab;
 
-        public ushort ClientID { get; private set; }
         public IClient Client { get; private set; }
         public DarkRiftServer Server { get; private set; }
+
+        public ushort TeamID { get; private set; }
+        public PlayerMetadataMsg Metadata { get; private set; }
         public GameObject Player { get; private set; } = null;
 
         LobbyManager m_Lobby;
-        ushort m_teamID;
 
-        public void Initialise(ushort clientID, IClient client, DarkRiftServer server, LobbyManager lobby)
+        public void Initialise(IClient client, DarkRiftServer server, LobbyManager lobby)
         {
-            ClientID = clientID;
             Client = client;
             Server = server;
             m_Lobby = lobby;
@@ -35,14 +35,14 @@ namespace Windslayer.Server
 
         public void Spawn()
         {
-            Player = Instantiate(PlayerPrefab, m_Lobby.CurrentMap.GetRandomSpawn(m_teamID), Quaternion.identity);
+            Player = Instantiate(PlayerPrefab, m_Lobby.CurrentMap.GetRandomSpawn(TeamID), Quaternion.identity);
 
             if (Player.activeSelf) {
                 Debug.LogError("In-game player should not begin active");
             }
 
             PlayerConnectionData conn = Player.GetComponent<PlayerConnectionData>();
-            conn.Initialise(ClientID, Client, Server, m_Lobby);
+            conn.Initialise(Client.ID, Client, Server, m_Lobby);
 
             Player.SetActive(true);
         }

@@ -25,7 +25,7 @@ namespace Windslayer.Server
 
         XmlUnityServer m_XmlServer;
 
-        Dictionary<IClient, GameObject> m_PlayerManagers = new Dictionary<IClient, GameObject>();
+        Dictionary<IClient, PlayerManager> m_PlayerManagers = new Dictionary<IClient, PlayerManager>();
         List<IClient> m_HostOrder = new List<IClient>();
 
         List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
@@ -62,7 +62,6 @@ namespace Windslayer.Server
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
         }
 
-
         void StartGame()
         {
             CurrentMap = Instantiate(Maps[Settings.MapID], Vector2.zero, Quaternion.identity);
@@ -73,6 +72,8 @@ namespace Windslayer.Server
             });
 
             foreach (Team team in m_Teams) {
+                team.ResetKills();
+
                 foreach (PlayerManager playerManager in team.Players.Values) {
                     if (playerManager != null) {
                         Debug.Log("Player should not be instantiated before the start of the game");
@@ -174,7 +175,7 @@ namespace Windslayer.Server
             GameObject p = Instantiate(PlayerManagerPrefab, Vector2.zero, Quaternion.identity);
 
             PlayerManager manager = p.GetComponent<PlayerManager>();
-            manager.Initialise(e.Client.ID, e.Client, m_XmlServer.Server, this);
+            manager.Initialise(e.Client, m_XmlServer.Server, this);
 
             m_HostOrder.Add(e.Client);
 
@@ -207,6 +208,7 @@ namespace Windslayer.Server
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
+            m_Teams[m_PlayerManagers[e.Client].TeamID].RemoveByDisconnect(e.Client);
             m_PlayerManagers.Remove(e.Client);
             m_HostOrder.Remove(e.Client);
 

@@ -43,8 +43,8 @@ namespace Windslayer
             e.Writer.Write(MapID);
         }
         
-        // Replaces fields with only the valid fields of another settings object. Since these settings are valid by default and can only change via this function, the settings will always be valid.
-        void ReplaceLobbySettings(LobbySettingsMsg s, int nPlayersConnected)
+        // Replaces fields with only the valid fields of another settings object
+        public void Replace(LobbySettingsMsg s, int nPlayersConnected)
         {
             if (s.MaxPlayers >= 2 && (s.MaxPlayers % 2 == 0) && s.MaxPlayers >= nPlayersConnected) {
                 MaxPlayers = s.MaxPlayers;
