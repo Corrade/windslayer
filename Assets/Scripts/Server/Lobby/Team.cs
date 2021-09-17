@@ -17,41 +17,63 @@ namespace Windslayer.Server
         public Dictionary<IClient, PlayerManager> Players { get; private set; } = new Dictionary<IClient, PlayerManager>();
         public int TotalKills { get; private set; } = 0;
 
-        public event EventHandler OnTeamSizeChange;
+        public event EventHandler OnTeamCountChange;
         public event EventHandler OnTotalKillsChange;
+
+        public int Count()
+        {
+            return Players.Keys.Count;
+        }
 
         public void ResetKills()
         {
             TotalKills = 0;
         }
 
-        public int Size()
+        public void Spawn()
         {
-            return Players.Keys.Count;
+            foreach (PlayerManager playerManager in Players.Values) {
+                if (playerManager.PlayerIsSpawned()) {
+                    Debug.Log("Player should not be instantiated before the start of the game");
+                }
+
+                playerManager.Spawn();
+            }
         }
 
+        public void Despawn()
+        {
+            foreach (PlayerManager playerManager in Players.Values) {
+                if (!playerManager.PlayerIsSpawned()) {
+                    Debug.Log("Team should not have a null player at the end of a game");
+                }
+
+                playerManager.Despawn();
+            }
+        }
+    
         public void Add(IClient client, PlayerManager player)
         {
             Players.Add(client, player);
-            OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
+            OnTeamCountChange?.Invoke(this, EventArgs.Empty);
 
             PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
             stat.OnKillsChanged += AddKill;
         }
 
-        public void Remove(IClient client, PlayerManager player)
+        // Must be called whenever a player leaves the team, voluntarily or via disconnect
+        public void Remove(IClient client)
         {
-            Players.Remove(client);
-            OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
+            PlayerManager player = Players[client];
+            if (player != null) {
+                PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
+                    if (stat != null) {
+                    stat.OnKillsChanged -= AddKill;
+                }
+            }
 
-            PlayerStatManager stat = player.GetComponent<PlayerStatManager>();
-            stat.OnKillsChanged -= AddKill;
-        }
-
-        public void RemoveByDisconnect(IClient client)
-        {
             Players.Remove(client);
-            OnTeamSizeChange?.Invoke(this, EventArgs.Empty);
+            OnTeamCountChange?.Invoke(this, EventArgs.Empty);
         }
 
         void AddKill(object sender, EventArgs e)

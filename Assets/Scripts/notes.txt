@@ -183,6 +183,7 @@ PLAYER CONNECTIONS
     client connects. server creates player manager.
     client -> PlayerMetadataMsg -> server
     server -> PlayerMetadataMsg -> ALL (clients register the new player)
+    // fill the client in on all the game happenings. lobby settings, win conditions state if applicable, teams of all players
 
     client disconnects.
     server -> DisconnectPlayerMsg -> ALL (remember to remove from team)

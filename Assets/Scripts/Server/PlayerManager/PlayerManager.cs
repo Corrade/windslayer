@@ -33,6 +33,11 @@ namespace Windslayer.Server
             m_Lobby = lobby;
         }
 
+        public bool PlayerIsSpawned()
+        {
+            return Player != null;
+        }
+
         public void Spawn()
         {
             Player = Instantiate(PlayerPrefab, m_Lobby.CurrentMap.GetRandomSpawn(TeamID), Quaternion.identity);

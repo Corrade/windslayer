@@ -7,14 +7,14 @@ using DarkRift;
 
 namespace Windslayer
 {
-    public class TeamSelectMsg : IDarkRiftSerializable
+    public class TeamDeclarationMsg : IDarkRiftSerializable
     {
         public ushort ClientID;
         public ushort TeamID;
 
-        public TeamSelectMsg() {}
+        public TeamDeclarationMsg() {}
 
-        public TeamSelectMsg(ushort clientID, ushort teamID)
+        public TeamDeclarationMsg(ushort clientID, ushort teamID)
         {
             ClientID = clientID;
             TeamID = teamID;

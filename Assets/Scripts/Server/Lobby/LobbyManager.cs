@@ -20,6 +20,7 @@ namespace Windslayer.Server
         [SerializeField]
         List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
 
+        // Only accept changes when !m_GameStarted
         public LobbySettingsMsg Settings { get; private set; }
         public Map CurrentMap { get; private set; }
 
@@ -27,11 +28,10 @@ namespace Windslayer.Server
 
         Dictionary<IClient, PlayerManager> m_PlayerManagers = new Dictionary<IClient, PlayerManager>();
         List<IClient> m_HostOrder = new List<IClient>();
-
         List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
-        Team m_SpecTeam;
 
-        EventHandler m_TimeLimitEvent;
+        int m_TimeLeftTicks;
+        EventHandler m_TimerListener;
         bool m_GameStarted = false;
 
         void Awake()
@@ -66,21 +66,19 @@ namespace Windslayer.Server
         {
             CurrentMap = Instantiate(Maps[Settings.MapID], Vector2.zero, Quaternion.identity);
 
-            m_TimeLimitEvent = Clock.Wait(Sync.Tickrate * (uint)Settings.TimeLimit, () => {
-                Debug.Log("Time ran out");
-                Timeout();
+            m_TimeLeftTicks = Settings.TimeLimit * (int)Sync.Tickrate;
+            m_TimerListener = Clock.CallEveryTick(() => {
+                --m_TimeLeftTicks;
+
+                if (m_TimeLeftTicks <= 0) {
+                    Debug.Log("Time ran out");
+                    Timeout();
+                }
             });
 
             foreach (Team team in m_Teams) {
                 team.ResetKills();
-
-                foreach (PlayerManager playerManager in team.Players.Values) {
-                    if (playerManager != null) {
-                        Debug.Log("Player should not be instantiated before the start of the game");
-                    }
-
-                    playerManager.Spawn();
-                }
+                team.Spawn();
             }
 
             m_GameStarted = true;
@@ -121,7 +119,7 @@ namespace Windslayer.Server
             }
 
             List<Team> teamsWithPlayers = m_Teams.FindAll((Team team) => {
-                return team.Size() >= 1;
+                return team.Count() >= 1;
             });
 
             if (teamsWithPlayers.Count == 1) {
@@ -131,17 +129,21 @@ namespace Windslayer.Server
             }
         }
 
-        // If a team has exceeded the total kill limit, they win. Otherwise nothing happens.
+        // If there is only one team that has exceeded the total kill limit, they win. If there are more teams that do this, the game draws. Otherwise nothing. Otherwise nothing happens.
         void CheckEndByKills(object sender, EventArgs e)
         {
             if (!m_GameStarted) {
                 return;
             }
 
-            foreach (Team team in m_Teams) {
-                if (team.TotalKills >= Settings.KillLimit) {
-                    EndGame(team);
-                }
+            List<Team> teamsWithEnoughKills = m_Teams.FindAll((Team team) => {
+                return team.TotalKills >= Settings.KillLimit;
+            });
+
+            if (teamsWithEnoughKills.Count == 1) {
+                EndGame(teamsWithEnoughKills[0]);
+            } else if (teamsWithEnoughKills.Count > 1) {
+                EndGame(null);
             }
         }
 
@@ -155,16 +157,10 @@ namespace Windslayer.Server
                 Debug.Log("Won");
             }
 
-            Clock.StopWait(m_TimeLimitEvent);
+            Clock.RemoveListener(m_TimerListener);
 
             foreach (Team team in m_Teams) {
-                foreach (PlayerManager playerManager in team.Players.Values) {
-                    if (playerManager == null) {
-                        Debug.Log("Team should not have a null player at the end of a game");
-                    }
-
-                    playerManager.Despawn();
-                }
+                team.Despawn();
             }
 
             Debug.Log("Game ended");
@@ -208,18 +204,24 @@ namespace Windslayer.Server
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            m_Teams[m_PlayerManagers[e.Client].TeamID].RemoveByDisconnect(e.Client);
-            m_PlayerManagers.Remove(e.Client);
-            m_HostOrder.Remove(e.Client);
+            uint playerTeamID = m_PlayerManagers[e.Client].TeamID;
 
+            if (playerTeamID >= 0) {
+                m_Teams[m_PlayerManagers[e.Client].TeamID].Remove(e.Client);
+            }
+
+            // Inform all other clients of the disconnection
             using (Message msg = Message.Create(
-                Tags.DespawnPlayer,
-                new DespawnPlayerMsg(e.Client.ID)
+                Tags.DisconnectPlayer,
+                new DisconnectPlayerMsg(m_PlayerManagers[e.Client].Metadata.ClientID)
             )) {
                 foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
                     client.SendMessage(msg, SendMode.Reliable);
                 }
             }
+
+            m_PlayerManagers.Remove(e.Client);
+            m_HostOrder.Remove(e.Client);
 
             CheckEndByDisconnect();
         }
