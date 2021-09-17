@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,8 +21,8 @@ namespace Windslayer.Server
         public IClient Client { get; private set; }
         public DarkRiftServer Server { get; private set; }
 
-        public ushort TeamID { get; private set; }
-        public PlayerMetadataMsg Metadata { get; private set; }
+        public ushort TeamID { get; set; }
+        public PlayerMetadataMsg Metadata { get; private set; } = null;
         public GameObject Player { get; private set; } = null;
 
         LobbyManager m_Lobby;
@@ -31,6 +32,8 @@ namespace Windslayer.Server
             Client = client;
             Server = server;
             m_Lobby = lobby;
+
+            Client.MessageReceived += MessageReceived;
         }
 
         public bool PlayerIsSpawned()
@@ -50,12 +53,87 @@ namespace Windslayer.Server
             conn.Initialise(Client.ID, Client, Server, m_Lobby);
 
             Player.SetActive(true);
+
+            // Broadcast
         }
 
         public void Despawn()
         {
             Destroy(Player);
             Player = null;
+
+            // Broadcast
+        }
+
+        void MessageReceived(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage() as Message) {
+                if (message.Tag == Tags.PlayerMetadata) {
+                    MetadataUpdate(sender, e);
+                } else if (message.Tag == Tags.LobbySettings) {
+                    ConfigureLobby(sender, e);
+                } else if (message.Tag == Tags.GameStart) {
+                    StartGame(sender, e);
+                } else if (message.Tag == Tags.TeamDeclaration) {
+                    DeclareTeam(sender, e);
+                }
+            }
+        }
+
+        void MetadataUpdate(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage()) {                    
+                PlayerMetadataMsg msg = message.Deserialize<PlayerMetadataMsg>();
+
+                // Ensure that the client is initialising themselves
+                if (e.Client.ID != msg.ClientID || Metadata != null) {
+                    return;
+                }
+
+                Metadata = msg;
+
+                // Broadcast the new player to all existing players
+                foreach (IClient client in Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
+                    client.SendMessage(message, SendMode.Reliable);
+                }
+
+                // Send all game information to the new client (other players, teams, scores, etc.)
+                // ...
+            }
+        }
+
+        void ConfigureLobby(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage()) {
+                if (Metadata != null) {
+                    LobbySettingsMsg msg = message.Deserialize<LobbySettingsMsg>();
+
+                    m_Lobby.ProposeNewSettings(Metadata.ClientID, msg);
+                }
+            }
+        }
+        
+        void StartGame(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage()) {
+                if (Metadata != null) {
+                    m_Lobby.ProposeStartGame(Metadata.ClientID);
+                }
+            }
+        }
+
+        void DeclareTeam(object sender, MessageReceivedEventArgs e)
+        {
+            using (Message message = e.GetMessage()) {                    
+                TeamDeclarationMsg msg = message.Deserialize<TeamDeclarationMsg>();
+
+                // Ensure that the client is switching themselves
+                if (e.Client.ID != msg.ClientID || Metadata != null) {
+                    return;
+                }
+
+                m_Lobby.ProposeTeamJoin(this, msg.TeamID, message);
+            }
         }
     }
 }

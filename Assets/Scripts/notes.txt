@@ -180,37 +180,50 @@ DigitalOcean's a good contender
 
 
 PLAYER CONNECTIONS
-    client connects. server creates player manager.
-    client -> PlayerMetadataMsg -> server
-    server -> PlayerMetadataMsg -> ALL (clients register the new player)
-    // fill the client in on all the game happenings. lobby settings, win conditions state if applicable, teams of all players
+    client connect
+        server creates player manager
+        client -> PlayerMetadataMsg -> server
+        server -> PlayerMetadataMsg -> ALL (clients register the new player)
+        (fill the client in on all the game happenings. lobby settings, win conditions state if applicable, teams of all players)
 
-    client disconnects.
-    server -> DisconnectPlayerMsg -> ALL (remember to remove from team)
+    client disconnect
+        server -> DisconnectPlayerMsg -> ALL
+        (remember to remove the player from all relevant data structures)
 
 LOBBY AND TEAM
-    client -> LobbySettingsMsg -> server (if host)
-    server -> LobbySettingsMsg -> ALL
+    lobby configuration
+        client -> LobbySettingsMsg -> server (if the client is the host)
+        server -> LobbySettingsMsg -> ALL
 
-    client -> TeamSelectMsg -> server (id must match)
-    server -> TeamSelectMsg -> ALL
+    game start
+        client -> GameStartMsg -> server (if the client is the host)
+        server spawns map, starts timer, spawns players
+        server -> SpawnPlayerMsg -> ALL (for each player in a team)
+        server -> GameStartMsg -> ALL
 
-    server -> WinConditionsStateMsg -> ALL (team kill count, time left)
+    game end
+        server -> DespawnPlayerMsg -> ALL (for each player spawned)
+        server -> GameEndMsg -> ALL
 
-    client -> GameStartMsg -> server (if host)
-    server spawn map, start timer, spawn players
-    server -> SpawnPlayerMsg -> ALL (for each player spawned)
-    server -> GameStartMsg -> ALL
+    team select
+        client -> TeamDeclarationMsg -> server (id of the player in the message must match the id of the client)
+        server -> TeamDeclarationMsg -> ALL
 
-    server -> DespawnPlayerMsg -> ALL (disconnect posssibly, team swap, match end)
+        if in-game, additionally:
+            server swaps the player's team and re-spawns them
+            ????
+            server -> DespawnPlayerMsg -> ALL
+            server -> SpawnPlayerMsg -> ALL
 
-    server -> GameEndMsg -> ALL
+    win conditions update (team kill count change, time left change)
+        server -> WinConditionsStateMsg -> ALL
+
+    team change
+        ?????
+        server -> DespawnPlayerMsg -> ALL (disconnect posssibly, team swap, match end)
 
 GAMEPLAY
     client -> PlayerCombatInputMsg -> server
     server -> player movement, player status, player used ability, player got a kill
-
-
-
 
 

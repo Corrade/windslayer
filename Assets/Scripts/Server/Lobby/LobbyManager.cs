@@ -27,7 +27,7 @@ namespace Windslayer.Server
         XmlUnityServer m_XmlServer;
 
         Dictionary<IClient, PlayerManager> m_PlayerManagers = new Dictionary<IClient, PlayerManager>();
-        List<IClient> m_HostOrder = new List<IClient>();
+        List<PlayerManager> m_HostOrder = new List<PlayerManager>();
         List<Team> m_Teams = new List<Team>( new Team[TeamIDs.Count] );
 
         int m_TimeLeftTicks;
@@ -60,6 +60,65 @@ namespace Windslayer.Server
 
             m_XmlServer.Server.ClientManager.ClientConnected += ClientConnected;
             m_XmlServer.Server.ClientManager.ClientDisconnected += ClientDisconnected;
+        }
+
+        public void ProposeNewSettings(ushort clientID, LobbySettingsMsg newSettings)
+        {
+            if (IsClientHost(clientID)) {
+                Settings.Replace(newSettings, m_PlayerManagers.Count);
+
+                // Broadcast new settings
+                using (Message msg = Message.Create(
+                    Tags.LobbySettings,
+                    Settings
+                )) {
+                    foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients()) {
+                        client.SendMessage(msg, SendMode.Reliable);
+                    }
+                }
+            }
+        }
+
+        public void ProposeStartGame(ushort clientID)
+        {
+            if (IsClientHost(clientID)) {
+                StartGame();
+            }
+        }
+        
+        public void ProposeTeamJoin(PlayerManager playerManager, ushort teamID, Message msg)
+        {
+            // Validate team ID and do nothing if the player is already on the specified team
+            if (playerManager.TeamID == teamID || !TeamIDs.IsValid(teamID)) {
+                return;
+            }
+
+            // if the difference between the new team size of the proposed team the player is joining and any other team is greater than whatever, don't allow it
+
+            if (m_GameStarted) {
+                playerManager.Despawn();
+            }
+
+            // Remove from their current team if such a team exists
+            if (TeamIDs.IsValid(playerManager.TeamID)) {
+                m_Teams[playerManager.TeamID].Remove(playerManager.Client);
+            }
+
+            m_Teams[teamID].Add(playerManager.Client, playerManager);
+
+            playerManager.TeamID = teamID;
+
+            // Broadcast team declaration
+            foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients()) {
+                client.SendMessage(msg, SendMode.Reliable);
+            }
+
+            if (m_GameStarted) {
+                // Perhaps place a delay here
+                // ...
+
+                playerManager.Spawn();
+            }
         }
 
         void StartGame()
@@ -173,7 +232,7 @@ namespace Windslayer.Server
             PlayerManager manager = p.GetComponent<PlayerManager>();
             manager.Initialise(e.Client, m_XmlServer.Server, this);
 
-            m_HostOrder.Add(e.Client);
+            m_HostOrder.Add(manager);
 
             /*
             broadcast just the player client here
@@ -204,26 +263,36 @@ namespace Windslayer.Server
 
         void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            uint playerTeamID = m_PlayerManagers[e.Client].TeamID;
+            PlayerManager playerManager = m_PlayerManagers[e.Client];
+            uint playerTeamID = playerManager.TeamID;
 
             if (playerTeamID >= 0) {
-                m_Teams[m_PlayerManagers[e.Client].TeamID].Remove(e.Client);
+                m_Teams[(int)playerTeamID].Remove(e.Client);
             }
 
             // Inform all other clients of the disconnection
             using (Message msg = Message.Create(
                 Tags.DisconnectPlayer,
-                new DisconnectPlayerMsg(m_PlayerManagers[e.Client].Metadata.ClientID)
+                new DisconnectPlayerMsg(playerManager.Metadata.ClientID)
             )) {
                 foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
                     client.SendMessage(msg, SendMode.Reliable);
                 }
             }
 
+            m_HostOrder.Remove(playerManager);
             m_PlayerManagers.Remove(e.Client);
-            m_HostOrder.Remove(e.Client);
 
             CheckEndByDisconnect();
+        }
+        
+        bool IsClientHost(ushort clientID)
+        {
+            if (m_HostOrder.Count == 0 || m_HostOrder[0].Metadata == null) {
+                return false;
+            }
+
+            return m_HostOrder[0].Metadata.ClientID == clientID;
         }
     }
 }

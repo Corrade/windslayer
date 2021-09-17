@@ -34,8 +34,7 @@ namespace Windslayer.Client
 
         void MessageReceived(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage() as Message)
-            {
+            using (Message message = e.GetMessage() as Message) {
                 if (message.Tag == Tags.SpawnPlayer) {
                     SpawnPlayer(sender, e);
                 } else if (message.Tag == Tags.DespawnPlayer) {
