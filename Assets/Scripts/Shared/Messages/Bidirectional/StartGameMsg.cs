@@ -7,9 +7,9 @@ using DarkRift;
 
 namespace Windslayer
 {
-    public class GameStartMsg : IDarkRiftSerializable
+    public class StartGameMsg : IDarkRiftSerializable
     {
-        public GameStartMsg() {}
+        public StartGameMsg() {}
 
         public void Deserialize(DeserializeEvent e)
         {

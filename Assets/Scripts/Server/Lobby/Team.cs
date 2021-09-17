@@ -14,11 +14,17 @@ namespace Windslayer.Server
 {
     public class Team
     {
+        public ushort TeamID { get; private set; }
         public Dictionary<IClient, PlayerManager> Players { get; private set; } = new Dictionary<IClient, PlayerManager>();
         public int TotalKills { get; private set; } = 0;
 
         public event EventHandler OnTeamCountChange;
         public event EventHandler OnTotalKillsChange;
+
+        public Team(ushort teamID)
+        {
+            TeamID = teamID;
+        }
 
         public int Count()
         {
@@ -33,10 +39,6 @@ namespace Windslayer.Server
         public void Spawn()
         {
             foreach (PlayerManager playerManager in Players.Values) {
-                if (playerManager.PlayerIsSpawned()) {
-                    Debug.Log("Player should not be instantiated before the start of the game");
-                }
-
                 playerManager.Spawn();
             }
         }
@@ -44,10 +46,6 @@ namespace Windslayer.Server
         public void Despawn()
         {
             foreach (PlayerManager playerManager in Players.Values) {
-                if (!playerManager.PlayerIsSpawned()) {
-                    Debug.Log("Team should not have a null player at the end of a game");
-                }
-
                 playerManager.Despawn();
             }
         }

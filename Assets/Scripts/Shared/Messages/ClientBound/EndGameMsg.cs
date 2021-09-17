@@ -7,13 +7,13 @@ using DarkRift;
 
 namespace Windslayer
 {
-    public class GameEndMsg : IDarkRiftSerializable
+    public class EndGameMsg : IDarkRiftSerializable
     {
         public ushort WinningTeamID { get; private set; }
 
-        public GameEndMsg() {}
+        public EndGameMsg() {}
 
-        public GameEndMsg(ushort winningTeamID)
+        public EndGameMsg(ushort winningTeamID)
         {
             WinningTeamID = winningTeamID;
         }

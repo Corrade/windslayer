@@ -208,10 +208,9 @@ LOBBY AND TEAM
     team select
         client -> TeamDeclarationMsg -> server (id of the player in the message must match the id of the client)
         server -> TeamDeclarationMsg -> ALL
+        server swaps the player's team
 
-        if in-game, additionally:
-            server swaps the player's team and re-spawns them
-            ????
+        if in-game, additionally sandwich this process between:
             server -> DespawnPlayerMsg -> ALL
             server -> SpawnPlayerMsg -> ALL
 
@@ -225,5 +224,38 @@ LOBBY AND TEAM
 GAMEPLAY
     client -> PlayerCombatInputMsg -> server
     server -> player movement, player status, player used ability, player got a kill
+
+
+
+
+
+
+
+
+/*
+broadcast just the player client here
+
+// Broadcast the new player to all existing players
+using (Message msg = Message.Create(
+    Tags.SpawnPlayer,
+    new SpawnPlayerMsg(e.Client.ID)
+)) {
+    foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
+        client.SendMessage(msg, SendMode.Reliable);
+    }
+}
+
+// Broadcast all players (including the new player itself) to the new player
+using (DarkRiftWriter w = DarkRiftWriter.Create()) {
+    foreach (GameObject p in m_PlayerManagers.Values) {
+        PlayerConnectionManager c = p.GetComponent<PlayerConnectionManager>();
+        w.Write(new SpawnPlayerMsg(c.ClientID));
+    }
+
+    using (Message msg = Message.Create(Tags.SpawnPlayer, w)) {
+        e.Client.SendMessage(msg, SendMode.Reliable);
+    }
+}
+*/
 
 

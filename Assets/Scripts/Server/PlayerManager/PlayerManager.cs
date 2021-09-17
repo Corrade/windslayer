@@ -43,26 +43,63 @@ namespace Windslayer.Server
 
         public void Spawn()
         {
-            Player = Instantiate(PlayerPrefab, m_Lobby.CurrentMap.GetRandomSpawn(TeamID), Quaternion.identity);
+            if (Metadata == null) {
+                Debug.LogError("Player metadata not registered before spawning");
+                return;
+            }
+
+            if (PlayerIsSpawned()) {
+                Debug.Log("Trying to spawn a player that's already spawned");
+                return;
+            }
+
+            Vector3 spawnPos = m_Lobby.CurrentMap.GetRandomSpawn(TeamID);
+            Player = Instantiate(PlayerPrefab, spawnPos, Quaternion.identity);
 
             if (Player.activeSelf) {
                 Debug.LogError("In-game player should not begin active");
             }
 
             PlayerConnectionData conn = Player.GetComponent<PlayerConnectionData>();
-            conn.Initialise(Client.ID, Client, Server, m_Lobby);
+            conn.Initialise(Metadata.ClientID, Client, Server, m_Lobby);
 
             Player.SetActive(true);
 
-            // Broadcast
+            // Broadcast spawn
+            using (Message msg = Message.Create(
+                Tags.SpawnPlayer,
+                new SpawnPlayerMsg(Metadata.ClientID, spawnPos)
+            )) {
+                foreach (IClient client in Server.ClientManager.GetAllClients()) {
+                    client.SendMessage(msg, SendMode.Reliable);
+                }
+            }
         }
 
         public void Despawn()
         {
+            if (Metadata == null) {
+                Debug.LogError("Player metadata not registered before despawning");
+                return;
+            }
+
+            if (!PlayerIsSpawned()) {
+                Debug.Log("Trying to despawn a player that's already despawned");
+                return;
+            }
+
             Destroy(Player);
             Player = null;
 
-            // Broadcast
+            // Broadcast despawn
+            using (Message msg = Message.Create(
+                Tags.DespawnPlayer,
+                new DespawnPlayerMsg(Metadata.ClientID)
+            )) {
+                foreach (IClient client in Server.ClientManager.GetAllClients()) {
+                    client.SendMessage(msg, SendMode.Reliable);
+                }
+            }
         }
 
         void MessageReceived(object sender, MessageReceivedEventArgs e)
@@ -72,7 +109,7 @@ namespace Windslayer.Server
                     MetadataUpdate(sender, e);
                 } else if (message.Tag == Tags.LobbySettings) {
                     ConfigureLobby(sender, e);
-                } else if (message.Tag == Tags.GameStart) {
+                } else if (message.Tag == Tags.StartGame) {
                     StartGame(sender, e);
                 } else if (message.Tag == Tags.TeamDeclaration) {
                     DeclareTeam(sender, e);
@@ -127,12 +164,7 @@ namespace Windslayer.Server
             using (Message message = e.GetMessage()) {                    
                 TeamDeclarationMsg msg = message.Deserialize<TeamDeclarationMsg>();
 
-                // Ensure that the client is switching themselves
-                if (e.Client.ID != msg.ClientID || Metadata != null) {
-                    return;
-                }
-
-                m_Lobby.ProposeTeamJoin(this, msg.TeamID, message);
+                m_Lobby.ProposeTeamDeclare(this, msg.TeamID, message);
             }
         }
     }
