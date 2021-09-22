@@ -10,16 +10,16 @@ using Windslayer;
 
 namespace Windslayer.Client
 {
-    public class PlayerCombatInputManager : MonoBehaviour
+    public class c_PlayerCombatInputManager : MonoBehaviour
     {
-        PlayerConnectionManager m_PlayerConnectionManager;
+        c_PlayerConnectionManager m_PlayerConnectionManager;
 
         protected Dictionary<ushort, KeyCode> m_Binds = new Dictionary<ushort, KeyCode>();
 
         void Awake()
         {
             SetupBinds();
-            m_PlayerConnectionManager = GetComponent<PlayerConnectionManager>();
+            m_PlayerConnectionManager = GetComponent<c_PlayerConnectionManager>();
         }
 
         protected virtual void SetupBinds() {

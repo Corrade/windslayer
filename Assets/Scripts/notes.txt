@@ -196,14 +196,14 @@ LOBBY AND TEAM
         server -> LobbySettingsMsg -> ALL
 
     game start
-        client -> GameStartMsg -> server (if the client is the host)
+        client -> StartGameMsg -> server (if the client is the host)
         server spawns map, starts timer, spawns players
         server -> SpawnPlayerMsg -> ALL (for each player in a team)
-        server -> GameStartMsg -> ALL
+        server -> StartGameMsg -> ALL
 
     game end
         server -> DespawnPlayerMsg -> ALL (for each player spawned)
-        server -> GameEndMsg -> ALL
+        server -> EndGameMsg -> ALL
 
     team select
         client -> TeamDeclarationMsg -> server (id of the player in the message must match the id of the client)
@@ -215,7 +215,7 @@ LOBBY AND TEAM
             server -> SpawnPlayerMsg -> ALL
 
     win conditions update (team kill count change, time left change)
-        server -> WinConditionsStateMsg -> ALL
+        TODO: server -> WinConditionsStateMsg -> ALL
 
 GAMEPLAY
     client -> PlayerCombatInputMsg -> server

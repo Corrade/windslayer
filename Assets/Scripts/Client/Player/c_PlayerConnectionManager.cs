@@ -11,7 +11,7 @@ using Windslayer;
 
 namespace Windslayer.Client
 {
-    public class PlayerConnectionManager : MonoBehaviour
+    public class c_PlayerConnectionManager : MonoBehaviour
     {
         // public ushort ClientID { get; private set; }
         public UnityClient Client { get; private set; }

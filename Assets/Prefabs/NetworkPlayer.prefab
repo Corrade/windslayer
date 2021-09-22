@@ -40,7 +40,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5850672207453713677}
   - component: {fileID: 5850672207453713676}
-  - component: {fileID: 3340649196467567519}
+  - component: {fileID: 7245714583100854338}
   m_Layer: 0
   m_Name: NetworkPlayer
   m_TagString: Untagged
@@ -115,7 +115,7 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &3340649196467567519
+--- !u!114 &7245714583100854338
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -124,6 +124,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 5850672207453713667}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f8246b1e83e19e442892c621a03e8d42, type: 3}
+  m_Script: {fileID: 11500000, guid: bb1065cf4fa89ae46994de704dd85418, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

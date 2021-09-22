@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Windslayer.Client
 {
-    public class MainCamera : MonoBehaviour
+    public class c_MainCamera : MonoBehaviour
     {
         [Tooltip("Camera speed")]
         public float Speed = 5f;
