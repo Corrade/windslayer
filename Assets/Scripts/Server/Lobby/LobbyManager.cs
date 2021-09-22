@@ -80,7 +80,7 @@ namespace Windslayer.Server
 
         public void ProposeStartGame(ushort clientID)
         {
-            if (IsClientHost(clientID)) {
+            if (IsClientHost(clientID) && !m_GameStarted) {
                 StartGame();
             }
         }

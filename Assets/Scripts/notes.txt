@@ -217,10 +217,6 @@ LOBBY AND TEAM
     win conditions update (team kill count change, time left change)
         server -> WinConditionsStateMsg -> ALL
 
-    team change
-        ?????
-        server -> DespawnPlayerMsg -> ALL (disconnect posssibly, team swap, match end)
-
 GAMEPLAY
     client -> PlayerCombatInputMsg -> server
     server -> player movement, player status, player used ability, player got a kill
