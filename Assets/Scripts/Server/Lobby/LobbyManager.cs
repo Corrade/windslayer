@@ -22,6 +22,7 @@ namespace Windslayer.Server
 
         public LobbySettingsMsg Settings { get; private set; }
         public Map CurrentMap { get; private set; }
+        public bool GameStarted { get; private set; } = false;
 
         XmlUnityServer m_XmlServer;
 
@@ -31,7 +32,6 @@ namespace Windslayer.Server
 
         int m_TimeLeftTicks;
         EventHandler m_TimerListener;
-        bool m_GameStarted = false;
 
         void Awake()
         {
@@ -63,7 +63,7 @@ namespace Windslayer.Server
 
         public void ProposeNewSettings(ushort clientID, LobbySettingsMsg newSettings)
         {
-            if (IsClientHost(clientID) && !m_GameStarted) {
+            if (IsClientHost(clientID) && !GameStarted) {
                 Settings.Replace(newSettings, m_PlayerManagers.Count);
 
                 // Broadcast new settings
@@ -80,7 +80,7 @@ namespace Windslayer.Server
 
         public void ProposeStartGame(ushort clientID)
         {
-            if (IsClientHost(clientID) && !m_GameStarted) {
+            if (IsClientHost(clientID) && !GameStarted) {
                 StartGame();
             }
         }
@@ -129,12 +129,12 @@ namespace Windslayer.Server
                 }
             }
 
-            m_GameStarted = true;
+            GameStarted = true;
         }
 
         void EndGame(Team winningTeam)
         {
-            m_GameStarted = false;
+            GameStarted = false;
 
             if (winningTeam == null) {
                 Debug.Log("Draw");
@@ -166,7 +166,7 @@ namespace Windslayer.Server
 
         void TeamDeclare(PlayerManager playerManager, ushort teamID, Message msg)
         {
-            if (m_GameStarted) {
+            if (GameStarted) {
                 playerManager.Despawn();
             }
 
@@ -180,11 +180,12 @@ namespace Windslayer.Server
             playerManager.TeamID = teamID;
 
             // Broadcast team declaration
+            // One approach is to not broadcast despawning/spawning but to instead overload the team declaration message on the client's end whereby they mirror the despawning/spawning
             foreach (IClient client in m_XmlServer.Server.ClientManager.GetAllClients()) {
                 client.SendMessage(msg, SendMode.Reliable);
             }
 
-            if (m_GameStarted) {
+            if (GameStarted) {
                 // Perhaps place a delay here
                 // ...
 
@@ -195,7 +196,7 @@ namespace Windslayer.Server
         // Should be called when times runs out. If there is a team with strictly the most kills, they win. Otherwise the game draws.
         void Timeout()
         {
-            if (!m_GameStarted) {
+            if (!GameStarted) {
                 return;
             }
 
@@ -222,7 +223,7 @@ namespace Windslayer.Server
         // If there is only one team left with a player, they win. If there are no teams with any players, the game draws. Otherwise nothing happens.
         void CheckEndByDisconnect()
         {
-            if (!m_GameStarted) {
+            if (!GameStarted) {
                 return;
             }
 
@@ -240,7 +241,7 @@ namespace Windslayer.Server
         // If there is only one team that has exceeded the total kill limit, they win. If there are more teams that do this, the game draws. Otherwise nothing. Otherwise nothing happens.
         void CheckEndByKills(object sender, EventArgs e)
         {
-            if (!m_GameStarted) {
+            if (!GameStarted) {
                 return;
             }
 

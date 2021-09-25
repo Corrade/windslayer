@@ -14,7 +14,7 @@ namespace Windslayer.Server
 {
     public class Clock : MonoBehaviour
     {
-        // 	0 to 4,294,967,295
+        // 0 to 4,294,967,295
         public static uint CurrentTick { get; private set; } = 0;
 
         static event EventHandler OnTickUpdate;

@@ -21,7 +21,22 @@ namespace Windslayer.Server
         public IClient Client { get; private set; }
         public DarkRiftServer Server { get; private set; }
 
-        public ushort TeamID { get; set; }
+        ushort _TeamID = TeamIDs.InvalidTeamID;
+        public ushort TeamID {
+            get {
+                return _TeamID;
+            }
+
+            set {
+                _TeamID = value;
+
+                if (PlayerIsSpawned()) {
+                    PlayerConnectionData conn = Player.GetComponent<PlayerConnectionData>();
+                    conn.TeamID = value;
+                }
+            }
+        }
+
         public PlayerMetadataMsg Metadata { get; private set; } = null;
         public GameObject Player { get; private set; } = null;
 
@@ -48,6 +63,11 @@ namespace Windslayer.Server
                 return;
             }
 
+            if (!TeamIDs.IsValid(TeamID)) {
+                Debug.LogError("Player not without being in a team");
+                return;
+            }
+
             if (PlayerIsSpawned()) {
                 Debug.Log("Trying to spawn a player that's already spawned");
                 return;
@@ -61,7 +81,7 @@ namespace Windslayer.Server
             }
 
             PlayerConnectionData conn = Player.GetComponent<PlayerConnectionData>();
-            conn.Initialise(Metadata.ClientID, Client, Server, m_Lobby);
+            conn.Initialise(Metadata.ClientID, Client, Server, m_Lobby, TeamID);
 
             Player.SetActive(true);
 

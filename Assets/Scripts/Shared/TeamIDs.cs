@@ -10,6 +10,7 @@ namespace Windslayer
         public static readonly ushort Blue = 1;
 
         public static readonly ushort Count = 2;
+        public static readonly ushort InvalidTeamID = 99;
 
         public static bool IsValid(ushort teamID)
         {

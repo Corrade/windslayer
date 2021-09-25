@@ -12,14 +12,14 @@ namespace Windslayer.Client
 {
     public class c_PlayerCombatInputManager : MonoBehaviour
     {
-        c_PlayerConnectionManager m_PlayerConnectionManager;
+        c_PlayerConnectionData m_PlayerConnectionData;
 
         protected Dictionary<ushort, KeyCode> m_Binds = new Dictionary<ushort, KeyCode>();
 
         void Awake()
         {
             SetupBinds();
-            m_PlayerConnectionManager = GetComponent<c_PlayerConnectionManager>();
+            m_PlayerConnectionData = GetComponent<c_PlayerConnectionData>();
         }
 
         protected virtual void SetupBinds() {
@@ -43,7 +43,7 @@ namespace Windslayer.Client
                 }
 
                 using (Message message = Message.Create(Tags.PlayerCombatInput, writer)) {
-                    m_PlayerConnectionManager.Client.SendMessage(message, SendMode.Unreliable);
+                    m_PlayerConnectionData.Client.SendMessage(message, SendMode.Unreliable);
                 }
             }
         }

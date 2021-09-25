@@ -19,12 +19,13 @@ namespace Windslayer.Server
         public LobbyManager Lobby { get; private set; }
         public ushort TeamID { get; set; }
 
-        public void Initialise(ushort clientID, IClient client, DarkRiftServer server, LobbyManager lobby)
+        public void Initialise(ushort clientID, IClient client, DarkRiftServer server, LobbyManager lobby, ushort teamID)
         {
             ClientID = clientID;
             Client = client;
             Server = server;
             Lobby = lobby;
+            TeamID = teamID;
         }
     }
 }

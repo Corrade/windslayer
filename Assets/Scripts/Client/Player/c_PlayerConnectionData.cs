@@ -13,12 +13,17 @@ namespace Windslayer.Client
 {
     public class c_PlayerConnectionData : MonoBehaviour
     {
-        // public ushort ClientID { get; private set; }
+        public ushort ClientID { get; private set; }
         public UnityClient Client { get; private set; }
+        public c_LobbyManager Lobby { get; private set; }
+        public ushort TeamID { get; set; }
 
-        public void Initialise(UnityClient client)
+        public void Initialise(ushort clientID, UnityClient client, c_LobbyManager lobby, ushort teamID)
         {
+            ClientID = clientID;
             Client = client;
+            Lobby = lobby;
+            TeamID = teamID;
         }
     }
 }
