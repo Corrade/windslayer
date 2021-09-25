@@ -11,7 +11,7 @@ namespace Windslayer
     {
         // Multiple of 2, >= 2, >= number of players already connected
         public ushort MaxPlayers { get; private set; } = 12;
-        
+
         public ushort MapID { get; private set; } = MapIDs.Popola;
 
         // (Seconds)
@@ -42,7 +42,7 @@ namespace Windslayer
             e.Writer.Write(RespawnTime);
             e.Writer.Write(MapID);
         }
-        
+
         // Replaces fields with only the valid fields of another settings object
         public void Replace(LobbySettingsMsg s, int nPlayersConnected)
         {

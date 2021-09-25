@@ -49,7 +49,7 @@ namespace Windslayer.Server
                 playerManager.Despawn();
             }
         }
-    
+
         public void Add(IClient client, PlayerManager player)
         {
             Players.Add(client, player);

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <!--
   Basic configuration for a Unity based DarkRift server.
-  
+
   See http://www.darkriftnetworking.com/DarkRift2/Docs/ for reference documentation.
 -->
 <configuration>
@@ -14,9 +14,9 @@
     Specifies where DarkRift should look for plugins.
   -->
   <pluginSearch>
-    
+
   </pluginSearch>
-  
+
   <!--
     The settings for logging server events.
   -->
@@ -29,7 +29,7 @@
       <logWriter name="FileWriter1" type="FileWriter" levels="trace, info, warning, error, fatal">
         <settings file="Logs/{0:d-M-yyyy}/{0:HH-mm-ss tt}.txt" />
       </logWriter>
-      
+
       <logWriter name="UnityConsoleWriter1" type="UnityConsoleWriter" levels="info, warning, error, fatal" />
     </logWriters>
   </logging>
@@ -47,7 +47,7 @@
     Defines the settings for storing server data.
   -->
   <data directory="Data/"/>
-  
+
   <!--
     Defines databases the server will make available to plugins.
   -->

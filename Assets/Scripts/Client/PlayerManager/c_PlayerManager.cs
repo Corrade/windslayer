@@ -12,15 +12,13 @@ using Windslayer;
 
 namespace Windslayer.Client
 {
-    // The player doesn't have an in-game representation when they're in spectator mode (any other cases?). Yet in this state the server still needs to track that player's data (e.g. player name), receive messages from them (e.g. lobby configuration, team select) and spawn their in-game object. Therefore the player needs a class that takes responsibility for these things and is tied to the lifetime of their connection itself.
     public class c_PlayerManager : MonoBehaviour
     {
         /*
         [SerializeField]
         GameObject PlayerPrefab;
 
-        public IClient Client { get; private set; }
-        public DarkRiftServer Server { get; private set; }
+        public UnityClient Client { get; private set; }
 
         public ushort TeamID { get; set; }
         public PlayerMetadataMsg Metadata { get; private set; } = null;
@@ -120,7 +118,7 @@ namespace Windslayer.Client
 
         void MetadataUpdate(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage()) {                    
+            using (Message message = e.GetMessage()) {
                 PlayerMetadataMsg msg = message.Deserialize<PlayerMetadataMsg>();
 
                 // Ensure that the client is initialising themselves
@@ -150,7 +148,7 @@ namespace Windslayer.Client
                 }
             }
         }
-        
+
         void StartGame(object sender, MessageReceivedEventArgs e)
         {
             using (Message message = e.GetMessage()) {
@@ -162,7 +160,7 @@ namespace Windslayer.Client
 
         void DeclareTeam(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage()) {                    
+            using (Message message = e.GetMessage()) {
                 TeamDeclarationMsg msg = message.Deserialize<TeamDeclarationMsg>();
 
                 m_Lobby.ProposeTeamDeclare(this, msg.TeamID, message);

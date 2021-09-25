@@ -28,7 +28,7 @@ game flow
                 time limit
                 respawn time
         start game (must have at least one player on each team)
-    
+
     combat
         upon death, respawn after a while. whilst waiting move into spec
 
@@ -58,7 +58,7 @@ other features
 
 
 
-In order to prevent resource leaks, it is important to unsubscribe from events before you dispose of a subscriber object. 
+In order to prevent resource leaks, it is important to unsubscribe from events before you dispose of a subscriber object.
 
 
 totally invincible during hit stun?
@@ -168,7 +168,7 @@ networking
     always send inputs, not position
     not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
 
-    
+
     During each tick, the server processes incoming user commands, runs a physical simulation step, checks the game rules, and updates all object states.
 
 
@@ -183,7 +183,7 @@ PLAYER CONNECTIONS
     client connect
         server creates player manager
         client -> PlayerMetadataMsg -> server
-        server -> PlayerMetadataMsg -> ALL (clients register the new player)
+        server -> PlayerMetadataMsg -> ALL (only now is the player truly connected - clients register the new player)
         (fill the client in on all the game happenings. lobby settings, win conditions state if applicable, teams of all players)
 
     client disconnect
@@ -255,3 +255,24 @@ using (DarkRiftWriter w = DarkRiftWriter.Create()) {
 */
 
 
+
+            using (Message message = e.GetMessage())
+            using (DarkRiftReader reader = message.GetReader()) {
+                // Multiple players are combined into one message, so loop
+                while (reader.Position < reader.Length) {
+                    SpawnPlayerMsg msg = reader.ReadSerializable<SpawnPlayerMsg>();
+
+                    c_PlayerConnectionManager player;
+
+                    if (msg.ClientID == Client.ID) {
+                        player = Instantiate(ThisPlayerPrefab, Vector3.zero, Quaternion.identity);
+                        Cam.Target = player.transform;
+                    } else {
+                        player = Instantiate(OtherPlayerPrefab, Vector3.zero, Quaternion.identity);
+                    }
+
+                    player.Initialise(Client);
+
+                    // m_Players.Add(msg.ClientID, player);
+                }
+            }

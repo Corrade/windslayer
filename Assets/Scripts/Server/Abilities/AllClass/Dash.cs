@@ -20,7 +20,7 @@ namespace Windslayer.Server
                 bool isFacingLeft,
                 Vector2 groundNormal
             ) {
-                
+
                 float magnitude = isFacingLeft ? -Force : Force;
                 return magnitude * PlayerMovementManager.VectorAlongSurface(groundNormal);
             }, ActiveDuration);

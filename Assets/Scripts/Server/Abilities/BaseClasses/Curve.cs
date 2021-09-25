@@ -15,12 +15,12 @@ namespace Windslayer.Server
             delegate(int t) { return 0f; },
             delegate(int t) { return t; }
         );
-        
+
         public static Curve Right = new Curve(
             delegate(int t) { return t; },
             delegate(int t) { return 0f; }
         );
-        
+
         public static Curve Static = new Curve(
             delegate(int t) { return 0f; },
             delegate(int t) { return 0f; }

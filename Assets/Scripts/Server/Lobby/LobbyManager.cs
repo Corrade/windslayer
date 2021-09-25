@@ -16,7 +16,7 @@ namespace Windslayer.Server
     {
         [SerializeField]
         GameObject PlayerManagerPrefab;
-        
+
         [SerializeField]
         List<Map> Maps = new List<Map>( new Map[MapIDs.Count] );
 
@@ -84,7 +84,7 @@ namespace Windslayer.Server
                 StartGame();
             }
         }
-        
+
         public void ProposeTeamDeclare(PlayerManager playerManager, ushort teamID, Message msg)
         {
             // Validate team ID and do nothing if the player is already on the specified team

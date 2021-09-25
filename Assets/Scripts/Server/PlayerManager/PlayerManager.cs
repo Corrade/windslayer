@@ -119,7 +119,7 @@ namespace Windslayer.Server
 
         void MetadataUpdate(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage()) {                    
+            using (Message message = e.GetMessage()) {
                 PlayerMetadataMsg msg = message.Deserialize<PlayerMetadataMsg>();
 
                 // Ensure that the client is initialising themselves
@@ -130,7 +130,7 @@ namespace Windslayer.Server
                 Metadata = msg;
 
                 // Broadcast the new player to all existing players
-                foreach (IClient client in Server.ClientManager.GetAllClients().Where(x => x != e.Client)) {
+                foreach (IClient client in Server.ClientManager.GetAllClients()) {
                     client.SendMessage(message, SendMode.Reliable);
                 }
 
@@ -149,7 +149,7 @@ namespace Windslayer.Server
                 }
             }
         }
-        
+
         void StartGame(object sender, MessageReceivedEventArgs e)
         {
             using (Message message = e.GetMessage()) {
@@ -161,7 +161,7 @@ namespace Windslayer.Server
 
         void DeclareTeam(object sender, MessageReceivedEventArgs e)
         {
-            using (Message message = e.GetMessage()) {                    
+            using (Message message = e.GetMessage()) {
                 TeamDeclarationMsg msg = message.Deserialize<TeamDeclarationMsg>();
 
                 m_Lobby.ProposeTeamDeclare(this, msg.TeamID, message);

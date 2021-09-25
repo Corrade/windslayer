@@ -50,7 +50,7 @@ namespace Windslayer.Server
             m_PlayerStatusManager.AddStartListener(Status.Stunned, InterruptAllAbilites);
             m_PlayerStatusManager.AddStartListener(Status.Frozen, InterruptAllAbilites);
         }
-        
+
         void FixedUpdate()
         {
             if (m_PlayerStatusManager.Is(Status.Silenced)) {
@@ -89,7 +89,7 @@ namespace Windslayer.Server
                 } else {
                     instance = Instantiate(StrongAttackAirPrefab, transform);
                 }
-        
+
                 m_ActiveAbilities.Add(instance);
                 instance.Initialise(gameObject);
             }

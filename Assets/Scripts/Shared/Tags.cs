@@ -22,7 +22,7 @@ namespace Windslayer
 
         // Server-bound
         public static readonly ushort PlayerCombatInput = 10;
-        
+
         public static readonly ushort Count = 11;
     }
 }

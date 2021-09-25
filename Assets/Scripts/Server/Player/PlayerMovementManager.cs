@@ -108,7 +108,7 @@ namespace Windslayer.Server
                 StopJump();
                 return;
             }
-        
+
             m_CandidatePosition = m_RB2D.position;
 
             OverrideVelocityTick();
@@ -277,7 +277,7 @@ namespace Windslayer.Server
                     }
                 }
             }
-            
+
             if (m_Jumping) {
                 HoldJump();
 
@@ -512,4 +512,4 @@ namespace Windslayer.Server
             return !IsGrounded && CandidateVelocity.y > 0f;
         }
     }
-}    
+}

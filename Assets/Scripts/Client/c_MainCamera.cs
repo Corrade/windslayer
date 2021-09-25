@@ -20,7 +20,7 @@ namespace Windslayer.Client
             }
 
             m_TargetPosition = Target.position;
-            
+
             transform.position = new Vector3(
                 Mathf.Lerp(transform.position.x, m_TargetPosition.x, Speed * Time.fixedDeltaTime),
                 Mathf.Lerp(transform.position.y, m_TargetPosition.y, Speed * Time.fixedDeltaTime),
