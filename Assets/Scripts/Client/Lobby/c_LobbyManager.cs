@@ -28,15 +28,18 @@ namespace Windslayer.Client
         [SerializeField]
         List<GameObject> Maps = new List<GameObject>( new GameObject[MapIDs.Count] );
 
-        public LobbySettingsMsg Settings { get; private set; }
+        public LobbySettingsMsg Settings { get; private set; } = new LobbySettingsMsg();
         public ushort CurrentMapId { get; private set; }
         public bool GameStarted { get; private set; } = false;
+        public Dictionary<ushort, c_PlayerManager> PlayerManagers { get; private set; } = new Dictionary<ushort, c_PlayerManager>();
+        public List<c_Team> Teams { get; private set; } = new List<c_Team>( new c_Team[TeamIDs.Count] );
+        public int TimeLeft { get; private set; } = 0;
 
-        Dictionary<ushort, c_PlayerManager> m_PlayerManagers = new Dictionary<ushort, c_PlayerManager>();
+        public event EventHandler OnSettingsChange;
+        public event EventHandler OnPlayerManagersChange;
+        public event EventHandler OnTimeLeftChange;
+
         // List<c_PlayerManager> m_HostOrder = new List<c_PlayerManager>();
-        List<c_Team> m_Teams = new List<c_Team>( new c_Team[TeamIDs.Count] );
-
-        int m_TimeLeft;
 
         void Awake()
         {
@@ -48,7 +51,7 @@ namespace Windslayer.Client
             Client.MessageReceived += MessageReceived;
 
             for (int i = 0; i < TeamIDs.Count; ++i) {
-                m_Teams[i] = new c_Team((ushort)i);
+                Teams[i] = new c_Team((ushort)i);
             }
 
             // Initialise self to server
@@ -105,7 +108,8 @@ namespace Windslayer.Client
                 c_PlayerManager playerManager = p.GetComponent<c_PlayerManager>();
                 playerManager.Initialise(Client, this, msg);
 
-                m_PlayerManagers.Add(msg.ClientID, playerManager);
+                PlayerManagers.Add(msg.ClientID, playerManager);
+                OnPlayerManagersChange?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -114,14 +118,15 @@ namespace Windslayer.Client
             using (Message message = e.GetMessage()) {
                 DisconnectPlayerMsg msg = message.Deserialize<DisconnectPlayerMsg>();
 
-                c_PlayerManager playerManager = m_PlayerManagers[msg.ClientID];
+                c_PlayerManager playerManager = PlayerManagers[msg.ClientID];
                 ushort teamID = playerManager.TeamID;
 
                 if (TeamIDs.IsValid(teamID)) {
-                    m_Teams[teamID].Remove(msg.ClientID);
+                    Teams[teamID].Remove(msg.ClientID);
                 }
 
-                m_PlayerManagers.Remove(msg.ClientID);
+                PlayerManagers.Remove(msg.ClientID);
+                OnPlayerManagersChange?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -130,6 +135,7 @@ namespace Windslayer.Client
             using (Message message = e.GetMessage()) {
                 LobbySettingsMsg msg = message.Deserialize<LobbySettingsMsg>();
                 Settings = msg;
+                OnSettingsChange?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -159,13 +165,13 @@ namespace Windslayer.Client
                 TeamDeclarationMsg msg = message.Deserialize<TeamDeclarationMsg>();
 
                 // Remove from their current team if such a team exists
-                if (TeamIDs.IsValid(m_PlayerManagers[msg.ClientID].TeamID)) {
-                    m_Teams[msg.TeamID].Remove(msg.ClientID);
+                if (TeamIDs.IsValid(PlayerManagers[msg.ClientID].TeamID)) {
+                    Teams[msg.TeamID].Remove(msg.ClientID);
                 }
 
-                m_Teams[msg.TeamID].Add(m_PlayerManagers[msg.ClientID]);
+                Teams[msg.TeamID].Add(PlayerManagers[msg.ClientID]);
 
-                m_PlayerManagers[msg.ClientID].TeamID = msg.TeamID;
+                PlayerManagers[msg.ClientID].TeamID = msg.TeamID;
             }
         }
 
@@ -175,10 +181,11 @@ namespace Windslayer.Client
                 WinConditionsStateMsg msg = message.Deserialize<WinConditionsStateMsg>();
 
                 for (int i = 0; i < msg.TeamTotalKills.Count(); ++i) {
-                    m_Teams[i].TotalKills = msg.TeamTotalKills[i];
+                    Teams[i].TotalKills = msg.TeamTotalKills[i];
                 }
 
-                m_TimeLeft = msg.TimeLeft;
+                TimeLeft = msg.TimeLeft;
+                OnTimeLeftChange?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -186,7 +193,7 @@ namespace Windslayer.Client
         {
             using (Message message = e.GetMessage()) {
                 SpawnPlayerMsg msg = message.Deserialize<SpawnPlayerMsg>();
-                m_PlayerManagers[msg.ClientID].Spawn(msg.Position);
+                PlayerManagers[msg.ClientID].Spawn(msg.Position);
             }
         }
 
@@ -194,7 +201,7 @@ namespace Windslayer.Client
         {
             using (Message message = e.GetMessage()) {
                 DespawnPlayerMsg msg = message.Deserialize<DespawnPlayerMsg>();
-                m_PlayerManagers[msg.ClientID].Despawn();
+                PlayerManagers[msg.ClientID].Despawn();
             }
         }
 
@@ -213,5 +220,7 @@ namespace Windslayer.Client
                 */
             }
         }
+
+        // player kill
     }
 }

@@ -16,7 +16,21 @@ namespace Windslayer.Client
     {
         public ushort TeamID { get; private set; }
         public Dictionary<ushort, c_PlayerManager> Players { get; private set; } = new Dictionary<ushort, c_PlayerManager>();
-        public int TotalKills { get; set; } = 0;
+
+        int _TotalKills = 0;
+        public int TotalKills {
+            get {
+                return _TotalKills;
+            }
+
+            set {
+                _TotalKills = value;            
+                OnTotalKillsChange?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public event EventHandler OnTeamCountChange;
+        public event EventHandler OnTotalKillsChange;
 
         public c_Team(ushort teamID)
         {
@@ -31,11 +45,13 @@ namespace Windslayer.Client
         public void Add(c_PlayerManager player)
         {
             Players.Add(player.Metadata.ClientID, player);
+            OnTeamCountChange?.Invoke(this, EventArgs.Empty);
         }
 
         public void Remove(ushort clientID)
         {
             Players.Remove(clientID);
+            OnTeamCountChange?.Invoke(this, EventArgs.Empty);
         }
     }
 }

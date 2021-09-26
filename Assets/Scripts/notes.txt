@@ -153,30 +153,6 @@ oo https://docs.google.com/document/d/1tVc7g_WdPEFBj_nemLt3S26gVPeTTZRs0MWle653z
     design patterns
         https://en.wikipedia.org/wiki/Software_design_pattern#Classification_and_list
 
-networking
-    https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
-    https://en.wikipedia.org/wiki/Netcode
-    https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
-
-    https://www.gabrielgambetta.com/client-server-game-architecture.html
-
-    "Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
-
-    client side prediction uses the same code that the server uses for movement checking/logic
-
-
-    always send inputs, not position
-    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
-
-
-    During each tick, the server processes incoming user commands, runs a physical simulation step, checks the game rules, and updates all object states.
-
-
-
-@SandwichBop I use Vultr.com to host most of my servers, $5 USD/month for a vps, 1 GB RAM, 1 CPU, heaps of bandwidth
-DigitalOcean's a good contender
-
-
 
 
 PLAYER CONNECTIONS
@@ -223,8 +199,176 @@ GAMEPLAY
 
 
 
+DESIGN DILEMMA
+essentially a question of "how dumb is the client"
+
+one option is to communicate at a rather high level. e.g. player 2 did strong attack. let the client calculate health and damage on their own - essentially a state machine approach.
+PROBLEM: what if a packet drops? and we don't want to send these attacks via TCP because of speed concerns
+
+but i worry the atlernative will involve sending too much info
+
+suppose player 2 uses the attack "fire arrow" and it hits player 1. throughout the course of this interaction, the server would've have to communicate:
+- fire arrow ability used (tcp)
+
+- player 2 is temporarily stunned while they're casting the ability
+
+- fire arrow projectile created (NO NEED: FOLLOWS FROM ABILITY USAGE)
+
+- position of the fire arrow projectile (NO NEED: THIS SHOULD BE DETERMINISTIC)
+    NO
+    projectiles should have deterministic positions
+    homing projectiles? not sure
+
+- player 1 damage taken
+    YES - SEND
+    the client could calculate this themselves by doing its own hitbox checks. BUT what if the client has an outdated view of the opponents? then they could reigster damage taken and be wrong. so the server needs to communicate it to be sure
+
+- player 1 is temporarily stunned from taking damage
+    YES - PIGGYBACK
+    stun duration could be piggybacked off of the damage taken msg
+
+- fire arrow projectile destroyed (because it hit player 1, let's say)
 
 
+
+
+
+
+
+
+networking
+    https://en.wikipedia.org/wiki/Netcode
+    https://en.wikipedia.org/wiki/Lag#Solutions_and_lag_compensation
+
+    https://www.gabrielgambetta.com/client-server-game-architecture.html
+
+    "Source engine server employs techniques such as data compression and lag compensation which are invisible to the client. The client then performs prediction and interpolation to further improve the experience."
+
+    client side prediction uses the same code that the server uses for movement checking/logic
+
+
+    always send inputs, not position
+    not sending the data at all until the player is supposed to see it is the only sure way to keep it secret
+
+
+    During each tick, the server processes incoming user commands, runs a physical simulation step, checks the game rules, and updates all object states.
+
+
+
+@SandwichBop I use Vultr.com to host most of my servers, $5 USD/month for a vps, 1 GB RAM, 1 CPU, heaps of bandwidth
+DigitalOcean's a good contender
+
+
+
+
+
+
+
+
+
+
+DATA FUNDAMENTALS
+    clients run at a certain at a tickrate
+    clients manage a ring buffer of player inputs indexed by tick. each tick will be a list of inputs that were entered during that tick. a ring buffer is used to store data from previous frames as well as the current one. this way, if there is packet loss, other nodes can reconstruct a client's input history
+
+(DETERMINISTIC) LOCKSTEP
+    https://ki.infil.net/w02-netcode-p4.html
+    https://www.ggpo.net/
+    https://gafferongames.com/post/deterministic_lockstep/
+
+    lockstep is where you transmit purely input (keypresses, ability usage, etc.) as opposed to state (position, orientation, velocity, etc.). all clients simulate the game logic based on the input.
+    the size of the bandwidth is now proportional to the quantity of inputs, not the amount of objects or data or anything! usually very efficient
+    this relies on the system being deterministic; same input -> same state. this is actually hugely NOT characteristic of physics simulations due to differences in os's, compilers, etc.
+
+    NAIVE
+        tick N renders once the input of all players for tick N has arrived
+        therefore tick N renders at the speed of the slowest connection
+
+        bad. things are always blocking for input since the other player is always behind
+
+    DELAY-BASED
+        tick N attempts to render after X ticks
+        we assume that during this interval of X ticks, all players' inputs would've been received. (this creates a PLAYOUT DELAY BUFFER, which is similar to what video streaming sites do. they pre-load the content so it can be played back) we set X based on the latency of the players
+        if all players' inputs haven't been received after X ticks, then the game halts until the inputs come in. this period of freezing is ideally imperceptible, but it has the potential to be long and incredibly jarring when connections are unstable
+
+    ROLLBACK
+        tick N renders immediately. the client's input is available, played immediately and transmitted. the remote player's input is assumed to be their input in tick N-1 (PREDICTION). the client saves the game state at tick N
+        later in tick N+J, the remote player's input for tick N arrives. if that input differs from what we predicted (DE-SYNC), we re-simulate from tick N, the point of divergence, to the current tick: the client, separately from their current game state and without rendering anything, loads the saved game state at tick N (ROLLBACK) and applies the real input of the remote player. this produces a new version of the game state at tick N. the game re-calculates the game states of ticks N+1...N+J starting from the correct tick N game state and renders the result as tick N+J
+
+        + client inputs are immediately played
+        + prediction technique is simple but effective, meaning there isn't a need to re-adjust a lot of the time
+        + mechanism only intervenes if a delay has occured
+        - a rollback will always occur whenever input changes (as the continuation of the previous input will be incorrect)
+
+        deterministic behaviour + capacity for rapid saving and loading of game states = rollback viable (nothing to do with genre in and of itself)
+
+        saving and loading game states in the background requires that game states are serialisable
+        calculating an additional game state in the background requires that gameplay is decoupled from rendering
+        rollback may result in cancelling or reviving things such as sound effects and particles that were wrongly initiated/destroyed, which demands technical consideration
+        both clients should be processing the same tick N at the same time (DE-SYNC) (see article for an example of what happens if this isn't adhered to). this is usually solved by delaying the ahead player by a few frames every now and then
+
+        "Maybe the first point to talk about would be the startup of moves. Because rollbacks happen only around your opponent’s button presses, it means when a rollback occurs, it always cuts off some part of the startup. This means having moves with slower startup makes it easier to hide rollbacks."
+
+    ROLLBACK + DELAY
+        delay rendering tick N for X ticks as you would for a delay-based system. but when players' inputs haven't arrived after X ticks, switch to a rollback method of handling tick N
+        X is constant
+
+        + prevents rollbacks from always occuring whenever input changes. if the input arrives within X ticks then it's fine
+
+    ROLLBACK WITH AN AUTHORITATIVE SERVER
+        https://www.gabrielgambetta.com/client-side-prediction-server-reconciliation.html
+        https://medium.com/@geretti/netcode-series-part-4-projectiles-96427ac53633
+        https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
+        
+        tick N renders immediately. the client's input is available, played immediately (CLIENT-SIDE INPUT PREDICTION) and transmitted
+        2 mutually-compatible options for remote player movement:
+            - INTERPOLATION BACK TIME: the remote players are moving in accordance with tick N-I as provided by the server. other players are shown as they were in the past. this is comparable to delay-based netcode but instead of taking a while for client input to appear, it takes a while for opponent's input to appear, simply to avoid a naive solution of waiting for all inputs
+            - INPUT EXTRAPOLATION: we predict where others are going like rollback. bad for physics simulations
+        the client saves only THEIR player state at tick N (hereafter 'player state' refers to the client's individual state)
+        later in tick N+J, the server's player state for tick N arrives. if that differs from what we communicated (DE-SYNC), we re-simulate from tick N, the point of divergence, to the current tick: the client, separately from their current player state and without rendering anything, loads the saved player state at tick N-1 (ROLLBACK), applies the server's authoritative version of tick N, and replays the client's input from ticks N+1..N+J. this produces a new version of the player state at the current tick N+J. this is maintained in parallel with the rendered player state as it is gradually interpolated into the rendered state
+
+SNAPSHOTS
+    general outline https://medium.com/@geretti/netcode-series-part-4-projectiles-96427ac53633
+    implementation https://fabiensanglard.net/quake3/network.php
+    high-level description https://gafferongames.com/post/snapshot_interpolation/
+
+    a snapshot model focuses on transmitting state rather than input. the server performs most of the simulation and the clients just send their input to the server.
+    the size of the bandwidth is proportional to the quantity of objects or data. lots more than lockstep
+
+    the server sends snapshots and the client interpolates between them
+
+
+
+LOCKSTEP VS SNAPSHOTS
+    LOCKSTEP
+        can be peer-to-peer, which is generally faster in the case of two clients
+        must be deterministic
+        must be able to save, load and simulate game states rapidly on clients
+        true synchronisation (players see the same events on the screen) when delay-based elements are used
+            in cases where network is nice and all packets are sent within the delay, no lag compensation is ever necessary. there are only issues when delays are affecting just one party, in which case the unaffected party is favoured since they get to act in realtime whereas their opponent is confused by faulty predictions and janky rollbacks. however this is rare since usually both players' inputs will be delayed
+
+    SNAPSHOTS
+        must be client-server as peers cannot be trusted to send correct states
+        higher bandwidth
+        no true synchronisation
+            even in cases where the network is perfectly stable and a nice ping, there is always the issue of lag compensation. it's not clear whether to bias the attacker (who shot a past-version of the victim) or the victim (who evaded the attacker ages ago)
+
+    anyway, hybrid designs are possible. lockstep for the client's own inputs and then snapshots for remote players?
+
+
+
+
+
+
+
+communicate the data if there is no way for the player to know it?
+
+
+
+ability calls
+damage and kills
+hitbox cleanup (for hitboxes with variable lifetimes - pierce count, projectiles)
+status changes (especially with little statuses like casting)
 
 
 

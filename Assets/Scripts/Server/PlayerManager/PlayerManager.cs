@@ -154,7 +154,7 @@ namespace Windslayer.Server
                     client.SendMessage(message, SendMode.Reliable);
                 }
 
-                // Send all game information to the new client (other players, teams, scores, etc.)
+                // Send all game information to the new client (all players metadata (excluding the player itself as that was just communicated), start game, spawn all other players, all players' teams, win conditions, lobby settings)
                 // ...
             }
         }
