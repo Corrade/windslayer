@@ -1,0 +1,9 @@
+{
+    "name": "com.windslayer.shared",
+    "version": "1.0.0",
+    "displayName": "WindslayerShared",
+    "description": "Code shared between the client and server",
+    "unity": "2021.1",
+    "dependencies": {
+    }
+}
